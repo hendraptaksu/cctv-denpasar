@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCTV ATCS Denpasar — Viewer + Peta SPBU</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --bg:#0f141b; --card:#1a2230; --card2:#222d42; --txt:#eef2f7; --mut:#9aa7bd; --acc:#2f81f7; --ok:#2ea043; --bad:#f85149; --warn:#d29922; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--txt); }
+  header { position:sticky; top:0; z-index:20; background:rgba(15,20,27,.95); backdrop-filter:blur(8px); border-bottom:1px solid #2a3648; }
+  .wrap { max-width:1400px; margin:0 auto; padding:14px 16px; }
+  h1 { font-size:20px; margin:0 0 2px; }
+  .sub { color:var(--mut); font-size:13px; }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+  input[type=search], select { padding:10px 12px; border-radius:8px; border:1px solid #2a3648; background:#0d131c; color:var(--txt); font-size:14px; }
+  input[type=search] { flex:2; min-width:180px; }
+  select { flex:1; min-width:170px; }
+  label.chk { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--txt); background:var(--card2); border:1px solid #2a3648; border-radius:8px; padding:9px 12px; cursor:pointer; }
+  button { padding:10px 14px; border-radius:8px; border:1px solid #2a3648; background:var(--card2); color:var(--txt); cursor:pointer; font-size:14px; }
+  button:hover { background:#2c3a55; }
+  button.primary { background:var(--acc); border-color:var(--acc); }
+  button.danger { background:#5a1f1f; border-color:var(--bad); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .tabs { display:flex; gap:6px; margin-top:10px; }
+  .tabs button.on { background:var(--acc); border-color:var(--acc); }
+  #grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:14px; padding:16px; max-width:1400px; margin:0 auto; }
+  #grid.hide { display:none; }
+  .card { background:var(--card); border:1px solid #2a3648; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+  .view { position:relative; aspect-ratio:16/9; background:#000; }
+  .view video, .view iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .placeholder { position:absolute; inset:0; display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; color:var(--mut); padding:12px; text-align:center; }
+  .badge { position:absolute; top:8px; left:8px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px; background:#333; z-index:2; }
+  .badge.live { background:var(--bad); } .badge.ready { background:var(--ok); } .badge.off { background:var(--warn); color:#000; }
+  .meta { padding:10px 12px; }
+  .meta h3 { margin:0 0 2px; font-size:15px; }
+  .meta p { margin:0 0 4px; font-size:12.5px; color:var(--mut); }
+  .meta .spbu { font-size:12.5px; color:#ffb86b; margin:0 0 8px; }
+  .row { display:flex; gap:6px; flex-wrap:wrap; }
+  .row button { padding:7px 10px; font-size:13px; }
+  .small { font-size:12px; color:var(--mut); word-break:break-all; margin-top:6px; }
+  #mapWrap { display:none; max-width:1400px; margin:0 auto; padding:16px; }
+  #mapWrap.show { display:block; }
+  #map { height:calc(100vh - 340px); min-height:420px; border-radius:12px; border:1px solid #2a3648; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:13px; color:var(--mut); margin-top:8px; }
+  #modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:1000; align-items:center; justify-content:center; padding:20px; }
+  #modal.open { display:flex; }
+  #modalBox { width:min(1100px,100%); }
+  #modal video { width:100%; max-height:78vh; background:#000; border-radius:8px; }
+  #status { padding:0 16px 16px; max-width:1400px; margin:0 auto; color:var(--mut); font-size:13px; }
+  .leaflet-popup-content { color:#111; font-size:13px; }
+  .leaflet-popup-content button { padding:6px 10px; font-size:13px; background:#2f81f7; color:#fff; border:0; margin-top:6px; }
+  .mk-cctv, .mk-spbu { font-size:20px; line-height:1; text-align:center; }
+  a { color:var(--acc); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>CCTV ATCS Kota Denpasar + Peta SPBU</h1>
+  <div class="sub" id="count">Memuat…</div>
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Cari lokasi / simpang… (cth: Teuku Umar)">
+    <select id="spbuSel" title="Filter berdasarkan SPBU"><option value="all">⛽ Semua SPBU</option></select>
+    <select id="radiusSel" title="Radius dari SPBU">
+      <option value="0.5">≤ 0,5 km dari SPBU</option>
+      <option value="1" selected>≤ 1 km dari SPBU</option>
+      <option value="2">≤ 2 km dari SPBU</option>
+      <option value="3">≤ 3 km dari SPBU</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="nearOnly"> CCTV dekat SPBU saja</label>
+  </div>
+  <div class="toolbar">
+    <button id="refresh">⟳ Refresh daftar</button>
+    <button id="playVisible" class="primary">▶ Putar yang tampil</button>
+    <button id="stopAll" class="danger">⏹ Stop semua</button>
+    <button id="checkBtn">📡 Cek status</button>
+  </div>
+  <div class="tabs">
+    <button id="tabGrid" class="on">🖼 Grid Kamera</button>
+    <button id="tabMap">🗺 Peta CCTV + SPBU</button>
+  </div>
+</div></header>
+
+<div id="grid"></div>
+<div id="mapWrap">
+  <div id="map"></div>
+  <div class="legend"><span>📷 CCTV ATCS</span><span>⛽ SPBU (data OpenStreetMap — klik marker untuk CCTV terdekat)</span></div>
+</div>
+<div id="status"></div>
+
+<div id="modal"><div id="modalBox">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div id="modalTitle" style="font-weight:700"></div>
+    <button id="modalClose">✕ Tutup</button>
+  </div>
+  <video id="modalVideo" controls autoplay muted playsinline></video>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.10"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+"use strict";
+const API = "https://atcs.denpasarkota.go.id/api/v3/pv/ldevice?orderBy=id_lokasi&sortedBy=asc";
+const HEADERS = { "x-client-id": "a194e6ae-d4dd-4b62-a0ac-388922f09303", "x-client-secret": "f430fde38a031fb657a2a7d6f84644a9aed767a4c22314d4b7c565648acc2396" };
+let cams = [];   // + {nearSpbu, nearDist}
+let spbus = [];  // {id,name,lat,lon,addr}
+const players = new Map();
+
+function norm(s){ return (s||"").toLowerCase(); }
+function hav(a,b,c,d){ // km
+  const R=6371, r=Math.PI/180;
+  const h=Math.sin((c-a)*r/2)**2 + Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function fmtKm(km){ return km < 1 ? Math.round(km*1000)+" m" : km.toFixed(1).replace(".",",")+" km"; }
+function setStatus(t){ document.getElementById("status").textContent = t || ""; }
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+function camTitle(c){ return c.nama_alias || c.nama || c.nama_lokasi; }
+
+async function loadLive() {
+  const r = await fetch(API, { headers: HEADERS });
+  if (!r.ok) throw new Error("API " + r.status);
+  const j = await r.json();
+  const out = [];
+  for (const loc of (j.data || [])) {
+    for (const dev of (loc.tb_device_lokasi || [])) {
+      let url = (dev.url_proxy_hls || "").trim();
+      if (!url) continue;
+      if (!url.endsWith("/")) url += "/";
+      out.push({
+        id_lokasi: loc.id_lokasi, nama_lokasi: loc.nama_lokasi, ket_lokasi: loc.ket_lokasi,
+        lat: loc.lat_lokasi, lon: loc.lon_lokasi,
+        nama: dev.nama, nama_alias: dev.nama_alias,
+        stream_page: url, hls: url + "index.m3u8",
+        poster: dev.poster ? "https://atcs.denpasarkota.go.id/poster/" + dev.poster : null
+      });
+    }
+  }
+  return out;
+}
+
+async function loadSpbu() {
+  try {
+    const r = await fetch("spbu.json");
+    if (r.ok) { spbus = await r.json(); return; }
+  } catch {}
+  spbus = [];
+}
+
+function computeNearest() {
+  for (const c of cams) {
+    let best = null, bd = Infinity;
+    for (const s of spbus) {
+      if (c.lat == null || s.lat == null) continue;
+      const d = hav(c.lat, c.lon, s.lat, s.lon);
+      if (d < bd) { bd = d; best = s; }
+    }
+    c.nearSpbu = best; c.nearDist = bd;
+  }
+}
+
+function fillSpbuSelect() {
+  const sel = document.getElementById("spbuSel");
+  sel.innerHTML = '<option value="all">⛽ Semua SPBU</option>';
+  [...spbus].sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
+    const o = document.createElement("option");
+    o.value = s.id; o.textContent = `⛽ ${s.name}`;
+    sel.appendChild(o);
+  });
+}
+
+async function load() {
+  setStatus("Mengambil daftar CCTV dari server…");
+  try {
+    cams = await loadLive();
+    setStatus("Live dari API ATCS Denpasar.");
+  } catch (e) {
+    console.warn(e);
+    try {
+      cams = await (await fetch("cctvs.json")).json();
+      setStatus("API tidak bisa diakses (" + e.message + ") — memakai snapshot lokal cctvs.json.");
+    } catch {
+      setStatus("Gagal memuat daftar: " + e.message);
+      return;
+    }
+  }
+  await loadSpbu();
+  computeNearest();
+  fillSpbuSelect();
+  const n = cams.filter(c => c.nearDist <= 1).length;
+  setStatus((document.getElementById("status").textContent + ` ${spbus.length} titik SPBU dimuat, ${n}/${cams.length} kamera dalam 1 km SPBU.`).trim());
+  render();
+  buildMapMarkers();
+}
+
+// --- filter ---
+function filtered() {
+  const q = norm(document.getElementById("q").value);
+  const spbuId = document.getElementById("spbuSel").value;
+  const radius = parseFloat(document.getElementById("radiusSel").value);
+  const nearOnly = document.getElementById("nearOnly").checked;
+  const sel = spbus.find(s => s.id === spbuId);
+  let ids = cams.map((_, i) => i);
+  if (q) ids = ids.filter(i => {
+    const c = cams[i];
+    return norm(c.nama_lokasi).includes(q) || norm(c.nama_alias).includes(q) || norm(c.nama).includes(q) || norm(c.ket_lokasi).includes(q);
+  });
+  if (sel) {
+    ids = ids.map(i => ({ i, d: hav(cams[i].lat, cams[i].lon, sel.lat, sel.lon) }))
+             .filter(({ d }) => d <= radius)
+             .sort((a,b) => a.d - b.d)
+             .map(({ i }) => i);
+  } else if (nearOnly) {
+    ids = ids.filter(i => cams[i].nearDist <= radius);
+  }
+  return { ids, sel, radius };
+}
+
+// --- video ---
+function attachStream(video, hlsUrl, onErr) {
+  if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    video.src = hlsUrl;
+    video.play().catch(() => {});
+    return { destroy() { video.removeAttribute("src"); video.load(); } };
+  }
+  if (window.Hls && Hls.isSupported()) {
+    const hls = new Hls({ maxLiveSyncPlaybackRate: 1.5 });
+    hls.on(Hls.Events.ERROR, (evt, data) => { if (data && data.fatal && onErr) onErr(data); });
+    hls.loadSource(hlsUrl);
+    hls.attachMedia(video);
+    video.play().catch(() => {});
+    return hls;
+  }
+  video.src = hlsUrl;
+  return { destroy() {} };
+}
+function playInto(idx) {
+  stopOne(idx);
+  const card = document.querySelector(`[data-idx="${idx}"]`);
+  if (!card) return;
+  const view = card.querySelector(".view");
+  const cam = cams[idx];
+  view.querySelector(".placeholder")?.remove();
+  view.querySelector("video")?.remove();
+  const v = document.createElement("video");
+  v.controls = true; v.muted = true; v.autoplay = true; v.playsInline = true;
+  view.prepend(v);
+  const badge = card.querySelector(".badge");
+  players.set(idx, { video: v, hls: attachStream(v, cam.hls, () => setBadge(badge, "off", "OFFLINE")) });
+  v.addEventListener("playing", () => setBadge(badge, "live", "● LIVE"));
+  v.addEventListener("error", () => setBadge(badge, "off", "OFFLINE"), true);
+  card.querySelector("[data-act=play]").textContent = "⏹ Stop";
+}
+function stopOne(idx) {
+  const p = players.get(idx);
+  if (p) { try { p.hls && p.hls.destroy(); } catch {} p.video?.remove(); players.delete(idx); }
+  const card = document.querySelector(`[data-idx="${idx}"]`);
+  if (card && !card.querySelector("video")) {
+    const b = card.querySelector("[data-act=play]");
+    if (b) b.textContent = "▶ Putar";
+  }
+}
+function setBadge(el, cls, txt) { if (el) { el.className = "badge " + cls; el.textContent = txt; } }
+function restorePlaceholder(idx) {
+  const card = document.querySelector(`[data-idx="${idx}"]`);
+  if (!card || card.querySelector(".placeholder") || card.querySelector("video")) return;
+  const d = document.createElement("div");
+  d.className = "placeholder";
+  d.innerHTML = `<div style="font-size:34px">📷</div><div>Klik <b>Putar</b> untuk streaming</div>`;
+  card.querySelector(".view").appendChild(d);
+}
+
+// --- grid ---
+function render() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  for (const k of [...players.keys()]) stopOne(k);
+  const { ids, sel, radius } = filtered();
+  const extra = sel ? ` • ≤ ${fmtKm(radius)} dari ${sel.name}` : "";
+  document.getElementById("count").textContent = `${cams.length} kamera • ${spbus.length} SPBU • menampilkan ${ids.length}${extra}`;
+  for (const idx of ids) {
+    const c = cams[idx];
+    const d = sel ? hav(c.lat, c.lon, sel.lat, sel.lon) : c.nearDist;
+    const sName = sel ? sel.name : (c.nearSpbu ? c.nearSpbu.name : null);
+    const card = document.createElement("div");
+    card.className = "card"; card.dataset.idx = idx;
+    card.innerHTML = `
+      <div class="view">
+        <span class="badge">IDLE</span>
+        <div class="placeholder">
+          <div style="font-size:34px">📷</div>
+          <div>Klik <b>Putar</b> untuk streaming</div>
+        </div>
+      </div>
+      <div class="meta">
+        <h3>${esc(camTitle(c))}</h3>
+        <p>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}</p>
+        ${sName && isFinite(d) ? `<p class="spbu">⛽ ${fmtKm(d)} ke ${esc(sName)}</p>` : ""}
+        <div class="row">
+          <button data-act="play" class="primary">▶ Putar</button>
+          <button data-act="full">⛶ Fullscreen</button>
+          <button data-act="map">🗺 Peta</button>
+          <button data-act="copy" title="Salin URL HLS">🔗 Copy URL</button>
+        </div>
+        <div class="small">${esc(c.hls)}</div>
+      </div>`;
+    card.querySelector("[data-act=play]").onclick = () => {
+      players.has(idx) ? (stopOne(idx), restorePlaceholder(idx), setBadge(card.querySelector(".badge"), "", "IDLE"))
+                       : playInto(idx);
+    };
+    card.querySelector("[data-act=full]").onclick = () => openModal(idx);
+    card.querySelector("[data-act=map]").onclick = () => { showTab("map"); focusCam(idx); };
+    card.querySelector("[data-act=copy]").onclick = async (e) => {
+      await navigator.clipboard.writeText(c.hls).catch(() => {});
+      e.target.textContent = "✓ Tersalin";
+      setTimeout(() => e.target.textContent = "🔗 Copy URL", 1200);
+    };
+    grid.appendChild(card);
+  }
+}
+
+// --- modal ---
+let modalHls = null;
+function openModal(idx) {
+  const c = cams[idx];
+  document.getElementById("modalTitle").textContent = camTitle(c);
+  document.getElementById("modal").classList.add("open");
+  const v = document.getElementById("modalVideo");
+  try { modalHls && modalHls.destroy(); } catch {}
+  modalHls = attachStream(v, c.hls, null);
+}
+window.openModal = openModal; // dipakai popup peta
+function closeModal() {
+  document.getElementById("modal").classList.remove("open");
+  const v = document.getElementById("modalVideo");
+  try { modalHls && modalHls.destroy(); } catch {}
+  modalHls = null; v.removeAttribute("src"); v.load();
+}
+document.getElementById("modalClose").onclick = closeModal;
+document.getElementById("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+// --- peta (Leaflet) ---
+let map = null, cctvLayer = null, spbuLayer = null, radiusCircle = null;
+const camMarkers = [];
+function initMap() {
+  if (map || !window.L) return false;
+  map = L.map("map").setView([-8.67, 115.21], 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19, attribution: "© OpenStreetMap"
+  }).addTo(map);
+  cctvLayer = L.layerGroup().addTo(map);
+  spbuLayer = L.layerGroup().addTo(map);
+  return true;
+}
+function buildMapMarkers() {
+  if (!map) return;
+  cctvLayer.clearLayers(); spbuLayer.clearLayers(); camMarkers.length = 0;
+  const camIcon = L.divIcon({ className: "", html: '<div class="mk-cctv">📷</div>', iconSize: [24,24], iconAnchor: [12,12] });
+  const spbuIcon = L.divIcon({ className: "", html: '<div class="mk-spbu">⛽</div>', iconSize: [24,24], iconAnchor: [12,12] });
+  cams.forEach((c, idx) => {
+    if (c.lat == null) return;
+    const m = L.marker([c.lat, c.lon], { icon: camIcon }).addTo(cctvLayer);
+    const near = c.nearSpbu && isFinite(c.nearDist)
+      ? `<br>⛽ Terdekat: ${esc(c.nearSpbu.name)} (${fmtKm(c.nearDist)})` : "";
+    m.bindPopup(`<b>${esc(camTitle(c))}</b><br>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}${near}<br><button onclick="openModal(${idx})">▶ Putar CCTV</button>`);
+    m._camIdx = idx;
+    camMarkers.push(m);
+  });
+  spbus.forEach(s => {
+    const m = L.marker([s.lat, s.lon], { icon: spbuIcon }).addTo(spbuLayer);
+    const nearby = cams.map((c, idx) => ({ c, idx, d: hav(c.lat, c.lon, s.lat, s.lon) }))
+      .filter(({ d }) => d <= 1).sort((a,b) => a.d - b.d).slice(0, 8);
+    const list = nearby.length
+      ? "<br>" + nearby.map(({ c, idx, d }) => `• ${fmtKm(d)} — <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>`).join("<br>")
+      : "<br><i>Belum ada CCTV dalam 1 km.</i>";
+    m.bindPopup(`<b>⛽ ${esc(s.name)}</b><br>${esc(s.addr || "")}<br><b>CCTV terdekat (≤1 km):</b>${list}<br><button onclick="filterBySpbu('${s.id}')">Tampilkan di grid</button>`);
+    m._spbuId = s.id;
+  });
+}
+window.filterBySpbu = function(id) {
+  document.getElementById("spbuSel").value = id;
+  document.getElementById("nearOnly").checked = false;
+  showTab("grid"); render();
+  document.getElementById("grid").scrollIntoView();
+};
+function focusCam(idx) {
+  if (!map) return;
+  const c = cams[idx];
+  map.setView([c.lat, c.lon], 16);
+  const m = camMarkers.find(m => m._camIdx === idx);
+  if (m) setTimeout(() => m.openPopup(), 300);
+}
+function drawRadius() {
+  if (!map) return;
+  if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
+  const sel = spbus.find(s => s.id === document.getElementById("spbuSel").value);
+  if (sel) {
+    const radius = parseFloat(document.getElementById("radiusSel").value);
+    radiusCircle = L.circle([sel.lat, sel.lon], { radius: radius * 1000, color: "orange", fillOpacity: 0.08 }).addTo(map);
+    map.setView([sel.lat, sel.lon], radius <= 1 ? 14 : 13);
+  }
+}
+function showTab(which) {
+  document.getElementById("tabGrid").classList.toggle("on", which === "grid");
+  document.getElementById("tabMap").classList.toggle("on", which === "map");
+  document.getElementById("grid").classList.toggle("hide", which !== "grid");
+  document.getElementById("mapWrap").classList.toggle("show", which === "map");
+  if (which === "map") {
+    if (!window.L) { setStatus("Peta butuh koneksi internet untuk memuat Leaflet/OpenStreetMap."); return; }
+    initMap(); buildMapMarkers();
+    setTimeout(() => { map.invalidateSize(); drawRadius(); }, 100);
+  }
+}
+document.getElementById("tabGrid").onclick = () => showTab("grid");
+document.getElementById("tabMap").onclick = () => showTab("map");
+
+// --- toolbar ---
+document.getElementById("q").addEventListener("input", render);
+document.getElementById("spbuSel").addEventListener("change", () => { render(); drawRadius(); });
+document.getElementById("radiusSel").addEventListener("change", () => { render(); drawRadius(); });
+document.getElementById("nearOnly").addEventListener("change", render);
+document.getElementById("refresh").onclick = load;
+document.getElementById("stopAll").onclick = () => { for (const k of [...players.keys()]) { stopOne(k); restorePlaceholder(k); const b = document.querySelector(`[data-idx="${k}"] .badge`); setBadge(b, "", "IDLE"); } };
+document.getElementById("playVisible").onclick = () => {
+  const { ids } = filtered();
+  const list = ids.slice(0, 12);
+  if (ids.length > 12 && !confirm(`Ada ${ids.length} kamera tampil. Memutar banyak stream sekaligus bisa berat. Putar 12 pertama saja?`)) return;
+  showTab("grid");
+  list.forEach(playInto);
+};
+document.getElementById("checkBtn").onclick = async () => {
+  const btn = document.getElementById("checkBtn");
+  btn.disabled = true;
+  const { ids } = filtered();
+  let online = 0;
+  setStatus(`Mengecek status ${ids.length} kamera…`);
+  const queue = [...ids];
+  async function worker() {
+    while (queue.length) {
+      const i = queue.shift();
+      const badge = document.querySelector(`[data-idx="${i}"] .badge`);
+      try {
+        const r = await fetch(cams[i].hls, { cache: "no-store" });
+        if (r.ok) { online++; if (!players.has(i)) setBadge(badge, "ready", "READY"); }
+        else if (!players.has(i)) setBadge(badge, "off", "OFFLINE");
+      } catch { if (!players.has(i)) setBadge(badge, "off", "OFFLINE"); }
+    }
+  }
+  await Promise.all(Array.from({ length: 6 }, worker));
+  setStatus(`Pengecekan selesai: ${online}/${ids.length} online.`);
+  btn.disabled = false;
+};
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,282 @@
+[
+ {
+  "name": "SPBU Pertamina 54.801.32",
+  "lat": -8.687005,
+  "lon": 115.1867265,
+  "addr": "SPBU Pertamina 54.801.32, 29, Jalan Gunung Soputan, Pemecutan Kelod, Denpasar Barat, Denpasar, Bali, 80119, Indonesia",
+  "id": "SPBU-01"
+ },
+ {
+  "name": "SPBU Pertamina 54.801.35",
+  "lat": -8.6382619,
+  "lon": 115.2089748,
+  "addr": "SPBU Pertamina 54.801.35, Jalan Bypass Gatot Subroto, Pemecutan Kaja, Denpasar Utara, Denpasar, Bali, 80118, Indonesia",
+  "id": "SPBU-02"
+ },
+ {
+  "name": "Pertamina SPBU",
+  "lat": -8.6245512,
+  "lon": 115.208976,
+  "addr": "Pertamina SPBU, Jalan Ahmad Yani, Peguyangan, Denpasar Utara, Denpasar, Bali, 80115, Indonesia",
+  "id": "SPBU-03"
+ },
+ {
+  "name": "Pompa bensin Jalan Trenggana",
+  "lat": -8.6060724,
+  "lon": 115.2360732,
+  "addr": "Pompa bensin, Jalan Trenggana, Penatih, Denpasar Timur, Denpasar, Bali, 80238, Indonesia",
+  "id": "SPBU-04"
+ },
+ {
+  "name": "SPBU",
+  "lat": -8.6191391,
+  "lon": 115.1827442,
+  "addr": "SPBU, Padangsambian Kaja, Denpasar Barat, Denpasar, Bali, 80117, Indonesia",
+  "id": "SPBU-05"
+ },
+ {
+  "name": "Pertamina (Instalasi Aspal)",
+  "lat": -8.7458743,
+  "lon": 115.2092383,
+  "addr": "Pertamina (Instalasi Aspal), Pedungan, Denpasar Selatan, Denpasar, Bali, 80222, Indonesia",
+  "id": "SPBU-06"
+ },
+ {
+  "name": "Pertamina Petrol Station",
+  "lat": -8.6958654,
+  "lon": 115.18713,
+  "addr": "Pertamina Petrol Station, Jalan Imam Bonjol, Pemecutan Kelod, Denpasar Barat, Denpasar, Bali, 80119, Indonesia",
+  "id": "SPBU-07"
+ },
+ {
+  "name": "Pertamina",
+  "lat": -8.7166638,
+  "lon": 115.2175654,
+  "addr": "Pertamina, Pedungan, Denpasar Selatan, Denpasar, Bali, 80222, Indonesia",
+  "id": "SPBU-08"
+ },
+ {
+  "name": "Pertamina Jalan Buana Raya",
+  "lat": -8.6670483,
+  "lon": 115.1877141,
+  "addr": "Pertamina, 101, Jalan Buana Raya, Padangsambian, Denpasar Barat, Denpasar, Bali, 80117, Indonesia",
+  "id": "SPBU-09"
+ },
+ {
+  "name": "Pertamina Jalan Sugianyar",
+  "lat": -8.6583406,
+  "lon": 115.2170693,
+  "addr": "Pertamina, 10, Jalan Sugianyar, Dauh Puri Kangin, Denpasar Barat, Denpasar, Bali, 80112, Indonesia",
+  "id": "SPBU-10"
+ },
+ {
+  "name": "Pertamina Jalan Pulau Nusa Penida",
+  "lat": -8.6777369,
+  "lon": 115.211623,
+  "addr": "Pertamina, Jalan Pulau Nusa Penida, Dauh Puri Kelod, Denpasar Barat, Denpasar, Bali, 80114, Indonesia",
+  "id": "SPBU-11"
+ },
+ {
+  "name": "Pertamina Jalan Maruti",
+  "lat": -8.6447574,
+  "lon": 115.209575,
+  "addr": "Pertamina, Jalan Maruti, Pemecutan Kaja, Denpasar Utara, Denpasar, Bali, 80118, Indonesia",
+  "id": "SPBU-12"
+ },
+ {
+  "name": "Pertamina Gang Tripang",
+  "lat": -8.7091604,
+  "lon": 115.221069,
+  "addr": "Pertamina, Gang Tripang, Sesetan, Denpasar Selatan, Denpasar, Bali, 80223, Indonesia",
+  "id": "SPBU-13"
+ },
+ {
+  "name": "Pertamina Jalan Padma",
+  "lat": -8.6232189,
+  "lon": 115.2363684,
+  "addr": "Pertamina, Jalan Padma, Penatih, Denpasar Timur, Denpasar, Bali, 80238, Indonesia",
+  "id": "SPBU-14"
+ },
+ {
+  "name": "Pertamina Jalan Raya Sesetan",
+  "lat": -8.6996475,
+  "lon": 115.2194622,
+  "addr": "Pertamina, Jalan Raya Sesetan, Sesetan, Denpasar Selatan, Denpasar, Bali, 80223, Indonesia",
+  "id": "SPBU-15"
+ },
+ {
+  "name": "Pertamina Jalan Tukad Pancoran",
+  "lat": -8.6914636,
+  "lon": 115.2279321,
+  "addr": "Pertamina, Jalan Tukad Pancoran, Panjer, Denpasar Selatan, Denpasar, Bali, 80225, Indonesia",
+  "id": "SPBU-16"
+ },
+ {
+  "name": "Pertamina Jalan Bypass Ngurah Rai",
+  "lat": -8.6723394,
+  "lon": 115.2588015,
+  "addr": "Pertamina, Jalan Bypass Ngurah Rai, Sanur Kaja, Denpasar Selatan, Denpasar, Bali, 80227, Indonesia",
+  "id": "SPBU-17"
+ },
+ {
+  "name": "Pertamina Jalan Bypass Gatot Subroto",
+  "lat": -8.6365252,
+  "lon": 115.1947454,
+  "addr": "Pertamina, Jalan Bypass Gatot Subroto, Ubung, Denpasar Utara, Denpasar, Bali, 80116, Indonesia",
+  "id": "SPBU-18"
+ },
+ {
+  "name": "Pertamina Jalan Bypass Ngurah Rai",
+  "lat": -8.6953833,
+  "lon": 115.2590717,
+  "addr": "Pertamina, Jalan Bypass Ngurah Rai, Sanur, Denpasar Selatan, Denpasar, Bali, 80228, Indonesia",
+  "id": "SPBU-19"
+ },
+ {
+  "name": "Pertamina Jalan Tukad Pakerisan",
+  "lat": -8.6862208,
+  "lon": 115.2263815,
+  "addr": "Pertamina, Jalan Tukad Pakerisan, Panjer, Denpasar Selatan, Denpasar, Bali, 80234, Indonesia",
+  "id": "SPBU-20"
+ },
+ {
+  "name": "Pertamina Jalan Hang Tuah",
+  "lat": -8.6742892,
+  "lon": 115.2542247,
+  "addr": "Pertamina, Jalan Hang Tuah, Sanur Kaja, Denpasar Selatan, Denpasar, Bali, 80227, Indonesia",
+  "id": "SPBU-21"
+ },
+ {
+  "name": "Pertamina Jalan Kamboja",
+  "lat": -8.6566631,
+  "lon": 115.2250801,
+  "addr": "Pertamina, Jalan Kamboja, Sumerta Kauh, Denpasar Timur, Denpasar, Bali, 80236, Indonesia",
+  "id": "SPBU-22"
+ },
+ {
+  "name": "Pertamina",
+  "lat": -8.6730122,
+  "lon": 115.2262101,
+  "addr": "Pertamina, Raya Puputan, Dangin Puri Kelod, Denpasar Timur, Denpasar, Bali, 80234, Indonesia",
+  "id": "SPBU-23"
+ },
+ {
+  "name": "Pertamina Jalan WR Supratman",
+  "lat": -8.6413927,
+  "lon": 115.2517962,
+  "addr": "Pertamina, Jalan WR Supratman, Nuansa Soka, Kesiman Kertalangu, Denpasar Timur, Denpasar, Bali, 80237, Indonesia",
+  "id": "SPBU-24"
+ },
+ {
+  "name": "Pertamina Jalan Mahendradatta",
+  "lat": -8.6705534,
+  "lon": 115.190962,
+  "addr": "Pertamina, Jalan Mahendradatta, Tegal Harum, Denpasar Barat, Denpasar, Bali, 80119, Indonesia",
+  "id": "SPBU-25"
+ },
+ {
+  "name": "Pertamina Jalan Tunjung Putih",
+  "lat": -8.6364386,
+  "lon": 115.2519375,
+  "addr": "Pertamina, Jalan Tunjung Putih, Perumahan Jepun Kuning, Kesiman Kertalangu, Denpasar Timur, Denpasar, Bali, 80237, Indonesia",
+  "id": "SPBU-26"
+ },
+ {
+  "name": "Pertamina Jalan Bypass Ngurah Rai",
+  "lat": -8.721233,
+  "lon": 115.1942868,
+  "addr": "Pertamina, Jalan Bypass Ngurah Rai, Pemogan, Denpasar Selatan, Denpasar, Bali, 80221, Indonesia",
+  "id": "SPBU-27"
+ },
+ {
+  "name": "Pertamina Jalan Teuku Umar Barat",
+  "lat": -8.6821361,
+  "lon": 115.1913587,
+  "addr": "Pertamina, Jalan Teuku Umar Barat, Pemecutan Kelod, Denpasar Barat, Denpasar, Bali, 80119, Indonesia",
+  "id": "SPBU-28"
+ },
+ {
+  "name": "Pertamina Jalan Hayam Wuruk",
+  "lat": -8.6603673,
+  "lon": 115.2393983,
+  "addr": "Pertamina, Jalan Hayam Wuruk, Sumerta Kelod, Denpasar Timur, Denpasar, Bali, 80239, Indonesia",
+  "id": "SPBU-29"
+ },
+ {
+  "name": "Pertamina Jalan Bypass Gatot Subroto",
+  "lat": -8.6359432,
+  "lon": 115.2187343,
+  "addr": "Pertamina, Jalan Bypass Gatot Subroto, Dangin Puri Kaja, Denpasar Utara, Denpasar, Bali, 80231, Indonesia",
+  "id": "SPBU-30"
+ },
+ {
+  "name": "Pertamina Jalan Badak",
+  "lat": -8.6668111,
+  "lon": 115.2315163,
+  "addr": "Pertamina, Jalan Badak, Sumerta Kelod, Denpasar Timur, Denpasar, Bali, 80239, Indonesia",
+  "id": "SPBU-31"
+ },
+ {
+  "name": "Pertamina Jalan Bypass Ngurah Rai",
+  "lat": -8.6516352,
+  "lon": 115.2541822,
+  "addr": "Pertamina, Jalan Bypass Ngurah Rai, Nuansa Soka, Kesiman Kertalangu, Denpasar Timur, Denpasar, Bali, 80237, Indonesia",
+  "id": "SPBU-32"
+ },
+ {
+  "name": "Pertamina Jalan Gunung Batukaru",
+  "lat": -8.6597129,
+  "lon": 115.2031647,
+  "addr": "Pertamina, Jalan Gunung Batukaru, Pemecutan, Denpasar Barat, Denpasar, Bali, 80119, Indonesia",
+  "id": "SPBU-33"
+ },
+ {
+  "name": "Pertamina Jalan Tukad Unda",
+  "lat": -8.6772839,
+  "lon": 115.2321022,
+  "addr": "Pertamina, Jalan Tukad Unda, Panjer, Denpasar Selatan, Denpasar, Bali, 80225, Indonesia",
+  "id": "SPBU-34"
+ },
+ {
+  "name": "Pertamina Jalan Bypass Ngurah Rai",
+  "lat": -8.7137109,
+  "lon": 115.2231589,
+  "addr": "Pertamina, Jalan Bypass Ngurah Rai, Sesetan, Denpasar Selatan, Denpasar, Bali, 80223, Indonesia",
+  "id": "SPBU-35"
+ },
+ {
+  "name": "Pertamina Jalan Sri Rama",
+  "lat": -8.6504538,
+  "lon": 115.2090517,
+  "addr": "Pertamina, Jalan Sri Rama, Pemecutan Kaja, Denpasar Utara, Denpasar, Bali, 80118, Indonesia",
+  "id": "SPBU-36"
+ },
+ {
+  "name": "Pertamina Jalan Hayam Wuruk",
+  "lat": -8.6663729,
+  "lon": 115.2415592,
+  "addr": "Pertamina, Jalan Hayam Wuruk, Badan Pendidikan & Pelatihan Provinsi Bali, Sumerta Kelod, Denpasar Timur, Denpasar, Bali, 80239, Indonesia",
+  "id": "SPBU-37"
+ },
+ {
+  "name": "Pertamina Jalan Raya Sesetan",
+  "lat": -8.678971,
+  "lon": 115.2149141,
+  "addr": "Pertamina, Jalan Raya Sesetan, Dauh Puri Kelod, Denpasar Barat, Denpasar, Bali, 80223, Indonesia",
+  "id": "SPBU-38"
+ },
+ {
+  "name": "Pertamina Jalan Bypass Ngurah Rai",
+  "lat": -8.7109197,
+  "lon": 115.2335044,
+  "addr": "Pertamina, Jalan Bypass Ngurah Rai, Sidakarya, Denpasar Selatan, Denpasar, Bali, 80224, Indonesia",
+  "id": "SPBU-39"
+ },
+ {
+  "name": "Pertamina Gang Rama",
+  "lat": -8.714504,
+  "lon": 115.2158046,
+  "addr": "Pertamina, Gang Rama, Istana Regency, Pedungan, Denpasar Selatan, Denpasar, Bali, 80222, Indonesia",
+  "id": "SPBU-40"
+ }
+]
