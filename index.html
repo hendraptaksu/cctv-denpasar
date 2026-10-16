@@ -77,13 +77,13 @@
     <button id="checkBtn">📡 Cek status</button>
   </div>
   <div class="tabs">
-    <button id="tabGrid" class="on">🖼 Grid Kamera</button>
-    <button id="tabMap">🗺 Peta CCTV + SPBU</button>
+    <button id="tabGrid">🖼 Grid Kamera</button>
+    <button id="tabMap" class="on">🗺 Peta CCTV + SPBU</button>
   </div>
 </div></header>
 
-<div id="grid"></div>
-<div id="mapWrap">
+<div id="grid" class="hide"></div>
+<div id="mapWrap" class="show">
   <div id="map"></div>
   <div class="legend"><span>📷 CCTV ATCS</span><span>⛽ SPBU (data OpenStreetMap — klik marker untuk CCTV terdekat)</span></div>
 </div>
@@ -190,8 +190,9 @@ async function load() {
   fillSpbuSelect();
   const n = cams.filter(c => c.nearDist <= 1).length;
   setStatus((document.getElementById("status").textContent + ` ${spbus.length} titik SPBU dimuat, ${n}/${cams.length} kamera dalam 1 km SPBU.`).trim());
+  markersDirty = true;
   render();
-  buildMapMarkers();
+  showTab("map"); // peta = tampilan default
 }
 
 // --- filter ---
@@ -318,6 +319,7 @@ function render() {
     };
     grid.appendChild(card);
   }
+  syncMapToFilter(); // marker peta selalu ikut filter header
 }
 
 // --- modal ---
@@ -343,7 +345,8 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal()
 
 // --- peta (Leaflet) ---
 let map = null, cctvLayer = null, spbuLayer = null, radiusCircle = null;
-const camMarkers = [];
+const camMarkerByIdx = {}, spbuMarkerById = {};
+let markersDirty = true;
 function initMap() {
   if (map || !window.L) return false;
   map = L.map("map").setView([-8.67, 115.21], 12);
@@ -354,30 +357,43 @@ function initMap() {
   spbuLayer = L.layerGroup().addTo(map);
   return true;
 }
-function buildMapMarkers() {
-  if (!map) return;
-  cctvLayer.clearLayers(); spbuLayer.clearLayers(); camMarkers.length = 0;
+// Bangun objek marker sekali saja (isi popup ikut data terbaru); tampil/sembunyi diatur syncMapToFilter().
+function ensureMarkersBuilt() {
+  if (!window.L || !markersDirty) return;
+  Object.keys(camMarkerByIdx).forEach(k => delete camMarkerByIdx[k]);
+  Object.keys(spbuMarkerById).forEach(k => delete spbuMarkerById[k]);
   const camIcon = L.divIcon({ className: "", html: '<div class="mk-cctv">📷</div>', iconSize: [24,24], iconAnchor: [12,12] });
   const spbuIcon = L.divIcon({ className: "", html: '<div class="mk-spbu">⛽</div>', iconSize: [24,24], iconAnchor: [12,12] });
   cams.forEach((c, idx) => {
     if (c.lat == null) return;
-    const m = L.marker([c.lat, c.lon], { icon: camIcon }).addTo(cctvLayer);
+    const m = L.marker([c.lat, c.lon], { icon: camIcon });
     const near = c.nearSpbu && isFinite(c.nearDist)
       ? `<br>⛽ Terdekat: ${esc(c.nearSpbu.name)} (${fmtKm(c.nearDist)})` : "";
     m.bindPopup(`<b>${esc(camTitle(c))}</b><br>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}${near}<br><button onclick="openModal(${idx})">▶ Putar CCTV</button>`);
-    m._camIdx = idx;
-    camMarkers.push(m);
+    camMarkerByIdx[idx] = m;
   });
   spbus.forEach(s => {
-    const m = L.marker([s.lat, s.lon], { icon: spbuIcon }).addTo(spbuLayer);
+    const m = L.marker([s.lat, s.lon], { icon: spbuIcon });
     const nearby = cams.map((c, idx) => ({ c, idx, d: hav(c.lat, c.lon, s.lat, s.lon) }))
       .filter(({ d }) => d <= 1).sort((a,b) => a.d - b.d).slice(0, 8);
     const list = nearby.length
       ? "<br>" + nearby.map(({ c, idx, d }) => `• ${fmtKm(d)} — <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>`).join("<br>")
       : "<br><i>Belum ada CCTV dalam 1 km.</i>";
     m.bindPopup(`<b>⛽ ${esc(s.name)}</b><br>${esc(s.addr || "")}<br><b>CCTV terdekat (≤1 km):</b>${list}<br><button onclick="filterBySpbu('${s.id}')">Tampilkan di grid</button>`);
-    m._spbuId = s.id;
+    spbuMarkerById[s.id] = m;
   });
+  markersDirty = false;
+}
+// Terapkan filter header yang SAMA ke marker peta.
+function syncMapToFilter() {
+  if (!map || !window.L || !cams.length) return;
+  ensureMarkersBuilt();
+  const { ids } = filtered();
+  cctvLayer.clearLayers();
+  ids.forEach(i => { const m = camMarkerByIdx[i]; if (m) cctvLayer.addLayer(m); });
+  spbuLayer.clearLayers();
+  spbus.forEach(s => { const m = spbuMarkerById[s.id]; if (m) spbuLayer.addLayer(m); });
+  drawRadius(false);
 }
 window.filterBySpbu = function(id) {
   document.getElementById("spbuSel").value = id;
@@ -389,17 +405,17 @@ function focusCam(idx) {
   if (!map) return;
   const c = cams[idx];
   map.setView([c.lat, c.lon], 16);
-  const m = camMarkers.find(m => m._camIdx === idx);
+  const m = camMarkerByIdx[idx];
   if (m) setTimeout(() => m.openPopup(), 300);
 }
-function drawRadius() {
+function drawRadius(zoom = true) {
   if (!map) return;
   if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
   const sel = spbus.find(s => s.id === document.getElementById("spbuSel").value);
   if (sel) {
     const radius = parseFloat(document.getElementById("radiusSel").value);
     radiusCircle = L.circle([sel.lat, sel.lon], { radius: radius * 1000, color: "orange", fillOpacity: 0.08 }).addTo(map);
-    map.setView([sel.lat, sel.lon], radius <= 1 ? 14 : 13);
+    if (zoom) map.setView([sel.lat, sel.lon], radius <= 1 ? 14 : 13);
   }
 }
 function showTab(which) {
@@ -409,8 +425,9 @@ function showTab(which) {
   document.getElementById("mapWrap").classList.toggle("show", which === "map");
   if (which === "map") {
     if (!window.L) { setStatus("Peta butuh koneksi internet untuk memuat Leaflet/OpenStreetMap."); return; }
-    initMap(); buildMapMarkers();
-    setTimeout(() => { map.invalidateSize(); drawRadius(); }, 100);
+    initMap();
+    syncMapToFilter();
+    setTimeout(() => { map.invalidateSize(); drawRadius(true); }, 100);
   }
 }
 document.getElementById("tabGrid").onclick = () => showTab("grid");
