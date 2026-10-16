@@ -343,6 +343,37 @@ document.getElementById("modalClose").onclick = closeModal;
 document.getElementById("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 
+// --- status stream (dipakai popup SPBU & tombol Cek status) ---
+const statusCache = {}; // idx -> {state:"online"|"offline", t:timestamp}
+async function checkCamStatus(idx) {
+  const now = Date.now();
+  const hit = statusCache[idx];
+  if (hit && now - hit.t < 5*60*1000) return hit.state;
+  let state = "offline";
+  try {
+    const r = await fetch(cams[idx].hls, { cache: "no-store" });
+    if (r.ok) state = "online";
+  } catch { state = "offline"; }
+  statusCache[idx] = { state, t: now };
+  return state;
+}
+function spbuNearby(s, maxKm = 1, maxN = 8) {
+  return cams.map((c, idx) => ({ c, idx, d: hav(c.lat, c.lon, s.lat, s.lon) }))
+    .filter(({ d }) => d <= maxKm).sort((a,b) => a.d - b.d).slice(0, maxN);
+}
+function spbuPopupHtml(s, states) {
+  const nearby = spbuNearby(s);
+  const rank = st => st === "online" ? 0 : st === "offline" ? 2 : 1;
+  nearby.sort((a,b) => (rank(states[a.idx]) - rank(states[b.idx])) || (a.d - b.d));
+  const list = nearby.length ? "<br>" + nearby.map(({ c, idx, d }) => {
+    const st = states[idx];
+    if (st === "offline") return `<span style="color:#999">• ${fmtKm(d)} — ${esc(camTitle(c))} (offline)</span>`;
+    const wait = st ? "" : " ⏳";
+    return `• ${fmtKm(d)} — <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>${wait}`;
+  }).join("<br>") : "<br><i>Belum ada CCTV dalam 1 km.</i>";
+  return `<b>⛽ ${esc(s.name)}</b><br>${esc(s.addr || "")}<br><b>CCTV terdekat (≤1 km):</b>${list}<br><button onclick="filterBySpbu('${s.id}')">Tampilkan di grid</button>`;
+}
+
 // --- peta (Leaflet) ---
 let map = null, cctvLayer = null, spbuLayer = null, radiusCircle = null;
 const camMarkerByIdx = {}, spbuMarkerById = {};
@@ -374,12 +405,19 @@ function ensureMarkersBuilt() {
   });
   spbus.forEach(s => {
     const m = L.marker([s.lat, s.lon], { icon: spbuIcon });
-    const nearby = cams.map((c, idx) => ({ c, idx, d: hav(c.lat, c.lon, s.lat, s.lon) }))
-      .filter(({ d }) => d <= 1).sort((a,b) => a.d - b.d).slice(0, 8);
-    const list = nearby.length
-      ? "<br>" + nearby.map(({ c, idx, d }) => `• ${fmtKm(d)} — <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>`).join("<br>")
-      : "<br><i>Belum ada CCTV dalam 1 km.</i>";
-    m.bindPopup(`<b>⛽ ${esc(s.name)}</b><br>${esc(s.addr || "")}<br><b>CCTV terdekat (≤1 km):</b>${list}<br><button onclick="filterBySpbu('${s.id}')">Tampilkan di grid</button>`);
+    m.bindPopup(spbuPopupHtml(s, {}));
+    m.on("popupopen", async () => {
+      const ids = spbuNearby(s).map(({ idx }) => idx);
+      const states = {};
+      ids.forEach(i => { const h = statusCache[i]; if (h) states[i] = h.state; });
+      m.getPopup().setContent(spbuPopupHtml(s, states));
+      const pending = ids.filter(i => !(i in states));
+      if (pending.length) {
+        await Promise.all(pending.map(async i => { states[i] = await checkCamStatus(i); }));
+        const p = m.getPopup();
+        if (p && p.isOpen()) p.setContent(spbuPopupHtml(s, states));
+      }
+    });
     spbuMarkerById[s.id] = m;
   });
   markersDirty = false;
@@ -460,9 +498,9 @@ document.getElementById("checkBtn").onclick = async () => {
       const badge = document.querySelector(`[data-idx="${i}"] .badge`);
       try {
         const r = await fetch(cams[i].hls, { cache: "no-store" });
-        if (r.ok) { online++; if (!players.has(i)) setBadge(badge, "ready", "READY"); }
-        else if (!players.has(i)) setBadge(badge, "off", "OFFLINE");
-      } catch { if (!players.has(i)) setBadge(badge, "off", "OFFLINE"); }
+        if (r.ok) { online++; statusCache[i] = { state: "online", t: Date.now() }; if (!players.has(i)) setBadge(badge, "ready", "READY"); }
+        else { statusCache[i] = { state: "offline", t: Date.now() }; if (!players.has(i)) setBadge(badge, "off", "OFFLINE"); }
+      } catch { statusCache[i] = { state: "offline", t: Date.now() }; if (!players.has(i)) setBadge(badge, "off", "OFFLINE"); }
     }
   }
   await Promise.all(Array.from({ length: 6 }, worker));
