@@ -132,6 +132,7 @@ const API = "https://atcs.denpasarkota.go.id/api/v3/pv/ldevice?orderBy=id_lokasi
 const HEADERS = { "x-client-id": "a194e6ae-d4dd-4b62-a0ac-388922f09303", "x-client-secret": "f430fde38a031fb657a2a7d6f84644a9aed767a4c22314d4b7c565648acc2396" };
 let cams = [];   // + {nearSpbu, nearDist}
 let spbus = [];  // {id,name,lat,lon,addr}
+let spbuPin = null; // {id, ids[]} — daftar persis dari popup SPBU via "Tampilkan di grid"
 const players = new Map();
 
 function norm(s){ return (s||"").toLowerCase(); }
@@ -218,6 +219,7 @@ async function load() {
   const n = cams.filter(c => c.nearDist <= 1).length;
   setStatus((document.getElementById("status").textContent + ` ${spbus.length} titik SPBU dimuat, ${n}/${cams.length} kamera dalam 1 km SPBU.`).trim());
   markersDirty = true;
+  spbuPin = null; // indeks kamera bisa bergeser setelah reload
   render();
   showTab("map"); // peta = tampilan default
 }
@@ -235,6 +237,12 @@ function filtered() {
     return norm(c.nama_lokasi).includes(q) || norm(c.nama_alias).includes(q) || norm(c.nama).includes(q) || norm(c.ket_lokasi).includes(q);
   });
   if (sel) {
+    if (spbuPin && spbuPin.id === spbuId) {
+      // mode pin: grid/peta menampilkan PERSIS daftar dari popup SPBU (urutan jarak),
+      // diiris pencarian teks
+      ids = spbuPin.ids.filter(i => ids.includes(i));
+      return { ids, sel, radius, pinned: true };
+    }
     ids = ids.map(i => ({ i, d: hav(cams[i].lat, cams[i].lon, sel.lat, sel.lon) }))
              .filter(({ d }) => d <= radius)
              .sort((a,b) => a.d - b.d)
@@ -242,7 +250,7 @@ function filtered() {
   } else if (nearOnly) {
     ids = ids.filter(i => cams[i].nearDist <= radius);
   }
-  return { ids, sel, radius };
+  return { ids, sel, radius, pinned: false };
 }
 
 // --- video ---
@@ -304,10 +312,10 @@ function render() {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
   for (const k of [...players.keys()]) stopOne(k);
-  const { ids, sel, radius } = filtered();
+  const { ids, sel, radius, pinned } = filtered();
   const hasFilter = document.getElementById("q").value.trim() !== "" || !!sel || document.getElementById("nearOnly").checked;
   document.getElementById("panelToggle").classList.toggle("hasFilter", hasFilter);
-  const extra = sel ? ` • ≤ ${fmtKm(radius)} dari ${sel.name}` : "";
+  const extra = sel ? (pinned ? ` • 📌 ${ids.length} sesuai daftar popup ${sel.name} (ubah filter SPBU untuk lepas)` : ` • ≤ ${fmtKm(radius)} dari ${sel.name}`) : "";
   document.getElementById("count").textContent = `${cams.length} kamera • ${spbus.length} SPBU • menampilkan ${ids.length}${extra}`;
   for (const idx of ids) {
     const c = cams[idx];
@@ -463,8 +471,11 @@ function syncMapToFilter() {
   drawRadius(false);
 }
 window.filterBySpbu = function(id) {
+  const s = spbus.find(x => x.id === id);
   document.getElementById("spbuSel").value = id;
   document.getElementById("nearOnly").checked = false;
+  // kunci daftar PERSIS seperti di popup (8 terdekat ≤1 km), bukan radius dropdown
+  spbuPin = s ? { id, ids: spbuNearby(s).map(({ idx }) => idx) } : null;
   showTab("grid"); render();
   document.getElementById("grid").scrollIntoView();
 };
@@ -509,8 +520,8 @@ document.getElementById("panelToggle").onclick = () => {
   document.getElementById("panelToggle").setAttribute("aria-expanded", String(open));
 };
 document.getElementById("q").addEventListener("input", render);
-document.getElementById("spbuSel").addEventListener("change", () => { render(); drawRadius(); });
-document.getElementById("radiusSel").addEventListener("change", () => { render(); drawRadius(); });
+document.getElementById("spbuSel").addEventListener("change", () => { spbuPin = null; render(); drawRadius(); });
+document.getElementById("radiusSel").addEventListener("change", () => { spbuPin = null; render(); drawRadius(); });
 document.getElementById("nearOnly").addEventListener("change", render);
 document.getElementById("refresh").onclick = load;
 document.getElementById("stopAll").onclick = () => { for (const k of [...players.keys()]) { stopOne(k); restorePlaceholder(k); const b = document.querySelector(`[data-idx="${k}"] .badge`); setBadge(b, "", "IDLE"); } };
