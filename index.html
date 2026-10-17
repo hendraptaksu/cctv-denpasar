@@ -86,7 +86,8 @@
   .leaflet-popup-content { color:#111; font-size:13px; }
   .leaflet-popup-content button { padding:6px 10px; font-size:13px; background:#2f81f7; color:#fff; border:0; margin-top:6px; }
   .leaflet-popup-content button:disabled { background:#888; opacity:.6; cursor:not-allowed; }
-  .mk-cctv, .mk-spbu, .mk-bali { font-size:20px; line-height:1; text-align:center; }
+  .mk-cctv, .mk-spbu, .mk-bali { font-size:20px; line-height:1; text-align:center; position:relative; }
+  .mk-n { position:absolute; top:-9px; right:-12px; background:var(--acc); color:#fff; font-size:11px; font-weight:700; border-radius:99px; padding:0 5px; line-height:1.6; }
   .meta .src { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; background:#2c3a55; margin-bottom:6px; }
   .meta .src.bali { background:#5b2d8e; }
   a { color:var(--acc); }
@@ -575,7 +576,8 @@ function spbuPopupHtml(s, states) {
 
 // --- peta (Leaflet) ---
 let map = null, cctvLayer = null, spbuLayer = null, radiusCircle = null;
-const camMarkerByIdx = {}, spbuMarkerById = {};
+const groupMarkerByKey = {}, spbuMarkerById = {};
+let locGroups = []; // [{key, lat, lon, label, idxs:[]}]
 let markersDirty = true;
 function initMap() {
   if (map || !window.L) return false;
@@ -589,21 +591,64 @@ function initMap() {
   spbuLayer = L.layerGroup().addTo(map);
   return true;
 }
-// Bangun objek marker sekali saja (isi popup ikut data terbaru); tampil/sembunyi diatur syncMapToFilter().
-function ensureMarkersBuilt() {
-  if (!window.L || !markersDirty) return;
-  Object.keys(camMarkerByIdx).forEach(k => delete camMarkerByIdx[k]);
-  Object.keys(spbuMarkerById).forEach(k => delete spbuMarkerById[k]);
-  const camIcon = L.divIcon({ className: "", html: '<div class="mk-cctv">📷</div>', iconSize: [24,24], iconAnchor: [12,12] });
-  const baliIcon = L.divIcon({ className: "", html: '<div class="mk-bali">📹</div>', iconSize: [24,24], iconAnchor: [12,12] });
-  const spbuIcon = L.divIcon({ className: "", html: '<div class="mk-spbu">⛽</div>', iconSize: [24,24], iconAnchor: [12,12] });
-  cams.forEach((c, idx) => {
-    if (c.lat == null) return;
-    const m = L.marker([c.lat, c.lon], { icon: c.source === "bali" ? baliIcon : camIcon });
+// Popup satu titik: 1 kamera -> detail penuh; >1 kamera -> daftar pilihan + status.
+function groupPopupHtml(g, list, states) {
+  if (list.length === 1) {
+    const idx = list[0], c = cams[idx];
     const near = c.nearSpbu && isFinite(c.nearDist)
       ? `<br>⛽ Terdekat: ${esc(c.nearSpbu.name)} (${fmtKm(c.nearDist)})` : "";
-    m.bindPopup(`<b>${esc(camTitle(c))}</b><br>${c.source === "bali" ? "📹 CCTV Provinsi Bali" : "📷 CCTV ATCS Denpasar"}<br>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}${near}<br><button onclick="openModal(${idx})">▶ Putar CCTV</button>`);
-    camMarkerByIdx[idx] = m;
+    return `<b>${esc(camTitle(c))}</b><br>${c.source === "bali" ? "📹 CCTV Provinsi Bali" : "📷 CCTV ATCS Denpasar"}<br>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}${near}<br><button onclick="openModal(${idx})">▶ Putar CCTV</button>`;
+  }
+  const rows = list.map(idx => {
+    const c = cams[idx];
+    const tag = c.source === "bali" ? "📹" : "📷";
+    if (states[idx] === "offline") return `<div>${tag} ${esc(camTitle(c))} <span style="color:#999">(offline)</span></div>`;
+    const wait = states[idx] ? "" : " ⏳";
+    return `<div>${tag} <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>${wait}</div>`;
+  }).join("");
+  return `<b>${list.length} kamera di titik ini</b><br>${esc(g.label)}<br>${rows}`;
+}
+// Bangun objek marker sekali saja (isi popup ikut data terbaru); tampil/sembunyi diatur syncMapToFilter().
+// Kamera se-titik dikelompokkan: satu ikon, popup berisi daftar pilihan.
+function ensureMarkersBuilt() {
+  if (!window.L || !markersDirty) return;
+  Object.keys(groupMarkerByKey).forEach(k => delete groupMarkerByKey[k]);
+  Object.keys(spbuMarkerById).forEach(k => delete spbuMarkerById[k]);
+  locGroups = [];
+  const byKey = {};
+  cams.forEach((c, idx) => {
+    if (c.lat == null) return;
+    const key = c.lat.toFixed(5) + "," + c.lon.toFixed(5);
+    if (!byKey[key]) {
+      byKey[key] = { key, lat: c.lat, lon: c.lon, label: c.nama_lokasi || camTitle(c), idxs: [] };
+      locGroups.push(byKey[key]);
+    }
+    byKey[key].idxs.push(idx);
+  });
+  const iconFor = (multi, bali) => L.divIcon({
+    className: "", iconSize: [24,24], iconAnchor: [12,12],
+    html: `<div class="${bali ? "mk-bali" : "mk-cctv"}">${bali ? "📹" : "📷"}${multi > 1 ? `<span class="mk-n">${multi}</span>` : ""}</div>`,
+  });
+  const spbuIcon = L.divIcon({ className: "", html: '<div class="mk-spbu">⛽</div>', iconSize: [24,24], iconAnchor: [12,12] });
+  locGroups.forEach(g => {
+    const bali = g.idxs.every(i => cams[i].source === "bali");
+    const m = L.marker([g.lat, g.lon], { icon: iconFor(g.idxs.length, bali) });
+    m.bindPopup("");
+    m.on("popupopen", async () => {
+      const set = new Set(filtered().ids);
+      let list = g.idxs.filter(i => set.has(i));
+      if (!list.length) list = g.idxs;
+      const states = {};
+      list.forEach(i => { const h = statusCache[i]; if (h) states[i] = h.state; });
+      m.getPopup().setContent(groupPopupHtml(g, list, states));
+      const pending = list.filter(i => !(i in states));
+      if (pending.length) {
+        await Promise.all(pending.map(async i => { states[i] = await checkCamStatus(i); }));
+        const p = m.getPopup();
+        if (p && p.isOpen()) p.setContent(groupPopupHtml(g, list, states));
+      }
+    });
+    groupMarkerByKey[g.key] = m;
   });
   spbus.forEach(s => {
     const m = L.marker([s.lat, s.lon], { icon: spbuIcon });
@@ -628,9 +673,11 @@ function ensureMarkersBuilt() {
 function syncMapToFilter() {
   if (!map || !window.L || !cams.length) return;
   ensureMarkersBuilt();
-  const { ids } = filtered();
+  const set = new Set(filtered().ids);
   cctvLayer.clearLayers();
-  ids.forEach(i => { const m = camMarkerByIdx[i]; if (m) cctvLayer.addLayer(m); });
+  locGroups.forEach(g => {
+    if (g.idxs.some(i => set.has(i))) cctvLayer.addLayer(groupMarkerByKey[g.key]);
+  });
   spbuLayer.clearLayers();
   spbus.forEach(s => { const m = spbuMarkerById[s.id]; if (m) spbuLayer.addLayer(m); });
   drawRadius(false);
@@ -645,18 +692,14 @@ window.filterBySpbu = function(id) {
   document.getElementById("grid").scrollIntoView();
 };
 function focusCam(idx) {
-  if (!map) return;
-  const c = cams[idx];
-  const m = camMarkerByIdx[idx];
+  if (!map || !window.L) return;
+  const g = locGroups.find(g => g.idxs.includes(idx));
+  if (!g) return;
+  const m = groupMarkerByKey[g.key];
   if (!m) return;
-  if (cctvLayer.zoomToShowLayer) {
-    // marker mungkin di dalam cluster: zoom sampai pecah lalu buka popup
-    map.setView([c.lat, c.lon], Math.max(map.getZoom(), 14));
-    cctvLayer.zoomToShowLayer(m, () => m.openPopup());
-  } else {
-    map.setView([c.lat, c.lon], 16);
-    setTimeout(() => m.openPopup(), 300);
-  }
+  if (!cctvLayer.hasLayer(m)) cctvLayer.addLayer(m);
+  if (cctvLayer.zoomToShowLayer) cctvLayer.zoomToShowLayer(m, () => m.openPopup());
+  else { map.setView([g.lat, g.lon], 16); setTimeout(() => m.openPopup(), 300); }
 }
 function drawRadius(zoom = true) {
   if (!map) return;
@@ -683,6 +726,18 @@ function showTab(which) {
     setTimeout(() => { fixSize(); drawRadius(true); }, 120);
   }
 }
+// Zoom peta ke hasil pencarian (debounce; hanya saat tab peta aktif).
+let fitTimer = null;
+function fitMapToSearch() {
+  if (!map || !window.L) return;
+  if (!document.getElementById("mapWrap").classList.contains("show")) return;
+  if (!norm(document.getElementById("q").value)) return;
+  const { ids } = filtered();
+  if (!ids.length || ids.length > 40) return;
+  const pts = ids.map(i => cams[i]).filter(c => c.lat != null).map(c => [c.lat, c.lon]);
+  if (!pts.length) return;
+  map.flyToBounds(pts, { padding: [40, 40], maxZoom: 15, duration: 0.8 });
+}
 document.getElementById("tabGrid").onclick = () => showTab("grid");
 document.getElementById("tabMap").onclick = () => showTab("map");
 
@@ -703,7 +758,11 @@ document.getElementById("panelToggle").onclick = () => {
   const open = document.getElementById("panel").classList.toggle("open");
   document.getElementById("panelToggle").setAttribute("aria-expanded", String(open));
 };
-document.getElementById("q").addEventListener("input", render);
+document.getElementById("q").addEventListener("input", () => {
+  render();
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(fitMapToSearch, 600);
+});
 document.getElementById("srcSel").addEventListener("change", render);
 document.getElementById("spbuSel").addEventListener("change", () => { spbuPin = null; render(); drawRadius(); });
 document.getElementById("radiusSel").addEventListener("change", () => { spbuPin = null; render(); drawRadius(); });
