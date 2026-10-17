@@ -257,5 +257,33 @@
   "lon": 115.2158046,
   "addr": "Pertamina, Gang Rama, Istana Regency, Pedungan, Denpasar Selatan, Denpasar, Bali, 80222, Indonesia",
   "id": "SPBU-37"
+ },
+ {
+  "name": "SPBU Pertamina Sunset Road 54.803.34",
+  "lat": -8.6986898,
+  "lon": 115.1780504,
+  "addr": "SPBU Pertamina Sunset Road 54.803.34, Sunset Road, Legian, Kuta, Badung, Bali, 80361, Indonesia",
+  "id": "SPBU-38"
+ },
+ {
+  "name": "SPBU Pertamina 54.803.19",
+  "lat": -8.6890239,
+  "lon": 115.1717806,
+  "addr": "SPBU Pertamina 54.803.19, Sunset Road, Seminyak, Kuta, Badung, Bali, 80361, Indonesia",
+  "id": "SPBU-39"
+ },
+ {
+  "name": "SPBU Gas Station Sunset Road 54.803.31",
+  "lat": -8.7129491,
+  "lon": 115.1859091,
+  "addr": "SPBU Gas Station Sunset Road 54.803.31, 27, Sunset Road, Kuta, Badung, Bali, 80361, Indonesia",
+  "id": "SPBU-40"
+ },
+ {
+  "name": "Pertamina",
+  "lat": -8.7151528,
+  "lon": 115.1863077,
+  "addr": "Pertamina, Sunset Road, Kuta, Badung, Bali, 80361, Indonesia",
+  "id": "SPBU-41"
  }
 ]

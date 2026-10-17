@@ -1,8 +1,9 @@
-# CCTV ATCS Denpasar — Viewer
+# CCTV ATCS Denpasar + Bali Provinsi — Viewer
 
 Program sederhana untuk melihat semua CCTV dari
-https://atcs.denpasarkota.go.id/streaming dalam satu halaman grid
-(164 kamera per snapshot terakhir, sumber: API publik situs tersebut).
+https://atcs.denpasarkota.go.id/streaming (164 kamera ATCS Denpasar)
+dan https://balisatudata.baliprov.go.id/peta-cctv (81 kamera Provinsi Bali)
+dalam satu halaman grid + peta (total 245 kamera per snapshot terakhir).
 
 ## Cara pakai (termudah)
 
@@ -25,8 +26,9 @@ https://atcs.denpasarkota.go.id/streaming dalam satu halaman grid
 ## File
 
 - `index.html` — program utama (satu file, tanpa build, tanpa install).
-- `cctvs.json` — snapshot daftar kamera; dipakai otomatis kalau API live tidak bisa diakses.
-- `spbu.json` — 37 titik SPBU di Denpasar (sumber: OpenStreetMap via Nominatim,
+- `cctvs.json` — snapshot 164 kamera ATCS Denpasar; dipakai otomatis kalau API live tidak bisa diakses.
+- `cctv-bali.json` — snapshot 81 kamera Provinsi Bali (Bali Satu Data); fallback bila API live gagal.
+- `spbu.json` — 41 titik SPBU di Denpasar + Sunset Road/Kuta (sumber: OpenStreetMap via Nominatim,
   sudah diaudit per titik via kategori OSM; 3 titik non-SPBU — Instalasi Aspal,
   depot Pedungan, kantor Jl. Sugianyar — dibuang);
   nama generik diperkaya nama jalan dari alamat). Bisa diedit manual — format:
@@ -68,8 +70,17 @@ https://atcs.denpasarkota.go.id/streaming dalam satu halaman grid
 
 ## Catatan teknis
 
-- Daftar diambil dari `GET https://atcs.denpasarkota.go.id/api/v3/pv/ldevice`
+- ATCS Denpasar: `GET https://atcs.denpasarkota.go.id/api/v3/pv/ldevice`
   dengan header `x-client-id` / `x-client-secret` (sama seperti yang dipakai situs aslinya;
   CORS server terbuka `*` sehingga bisa di-fetch langsung dari browser).
-- Setiap kamera di-stream via HLS: `{url_proxy_hls}/index.m3u8`, diputar dengan
-  `hls.js` (Chrome/Firefox/Edge) atau HLS native (Safari).
+  Stream HLS per kamera: `{url_proxy_hls}/index.m3u8`.
+- Bali Provinsi: `GET https://balisatudata.baliprov.go.id/api/v1/report-cctv`
+  (tanpa auth, CORS `*`). Stream HLS per kamera:
+  `https://transcode.baliprov.go.id/cctv/{ch_id}/index.m3u8`
+  (pola yg dipakai halaman player resmi `cctv-player.html?id=...`).
+  Status API selalu "unknown" — ketersediaan dicek langsung via playlist seperti Denpasar.
+- ATCS Badung (`badung.atcsindonesia.info`) saat ini **tidak bisa diakses**
+  (koneksi gagal total, sudah dicoba http+https; bahkan ada berita lokal soal gangguannya).
+  Untungnya area Badung/Sunset Road ter-cover kamera Provinsi Bali
+  (20 kamera ≤3 km dari Sunset Road, terdekat 0,7 km di Legian).
+- Semua stream diputar dengan `hls.js` (Chrome/Firefox/Edge) atau HLS native (Safari).

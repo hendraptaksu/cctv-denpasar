@@ -77,7 +77,9 @@
   .leaflet-popup-content { color:#111; font-size:13px; }
   .leaflet-popup-content button { padding:6px 10px; font-size:13px; background:#2f81f7; color:#fff; border:0; margin-top:6px; }
   .leaflet-popup-content button:disabled { background:#888; opacity:.6; cursor:not-allowed; }
-  .mk-cctv, .mk-spbu { font-size:20px; line-height:1; text-align:center; }
+  .mk-cctv, .mk-spbu, .mk-bali { font-size:20px; line-height:1; text-align:center; }
+  .meta .src { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; background:#2c3a55; margin-bottom:6px; }
+  .meta .src.bali { background:#5b2d8e; }
   a { color:var(--acc); }
 </style>
 </head>
@@ -94,6 +96,11 @@
   </div>
   <div id="panel">
   <div class="toolbar">
+    <select id="srcSel" title="Sumber CCTV">
+      <option value="all">📡 Semua sumber</option>
+      <option value="denpasar">📷 ATCS Denpasar</option>
+      <option value="bali">📹 Bali Provinsi</option>
+    </select>
     <select id="spbuSel" title="Filter berdasarkan SPBU"><option value="all">⛽ Semua SPBU</option></select>
     <select id="radiusSel" title="Radius dari SPBU">
       <option value="0.5">≤ 0,5 km dari SPBU</option>
@@ -119,7 +126,7 @@
 <div id="grid" class="hide"></div>
 <div id="mapWrap" class="show">
   <div id="map"></div>
-  <div class="legend"><span>📷 CCTV ATCS</span><span>⛽ SPBU (data OpenStreetMap — klik marker untuk CCTV terdekat)</span></div>
+  <div class="legend"><span>📷 CCTV ATCS Denpasar</span><span>📹 CCTV Bali Provinsi</span><span>⛽ SPBU (data OpenStreetMap — klik marker untuk CCTV terdekat)</span></div>
 </div>
 <div id="status"></div>
 
@@ -138,6 +145,9 @@
 "use strict";
 const API = "https://atcs.denpasarkota.go.id/api/v3/pv/ldevice?orderBy=id_lokasi&sortedBy=asc";
 const HEADERS = { "x-client-id": "a194e6ae-d4dd-4b62-a0ac-388922f09303", "x-client-secret": "f430fde38a031fb657a2a7d6f84644a9aed767a4c22314d4b7c565648acc2396" };
+const BALI_API = "https://balisatudata.baliprov.go.id/api/v1/report-cctv";
+const BALI_HLS = "https://transcode.baliprov.go.id/cctv/";
+const BALI_PLAYER = "https://transcode.baliprov.go.id/cctv-player.html?id=";
 let cams = [];   // + {nearSpbu, nearDist}
 let spbus = [];  // {id,name,lat,lon,addr}
 let spbuPin = null; // {id, ids[]} — daftar persis dari popup SPBU via "Tampilkan di grid"
@@ -176,6 +186,25 @@ async function loadLive() {
   return out;
 }
 
+function mapBaliCam(r) {
+  const lat = parseFloat(r.lat), lon = parseFloat(r.lng);
+  if (!isFinite(lat) || !isFinite(lon) || !r.ch_id) return null;
+  return {
+    id_lokasi: "bali-" + r.cctv_id, nama_lokasi: r.ch_name, ket_lokasi: "CCTV Provinsi Bali (Bali Satu Data)",
+    lat, lon, nama: r.ch_name, nama_alias: r.ch_name,
+    stream_page: r.streaming_url || (BALI_PLAYER + r.ch_id),
+    hls: BALI_HLS + r.ch_id + "/index.m3u8",
+    poster: null, source: "bali",
+  };
+}
+
+async function loadBaliLive() {
+  const r = await fetch(BALI_API);
+  if (!r.ok) throw new Error("API Bali " + r.status);
+  const j = await r.json();
+  return Object.values(j.data || {}).map(mapBaliCam).filter(Boolean);
+}
+
 async function loadSpbu() {
   try {
     const r = await fetch("spbu.json");
@@ -208,24 +237,29 @@ function fillSpbuSelect() {
 
 async function load() {
   setStatus("Mengambil daftar CCTV dari server…");
-  try {
-    cams = await loadLive();
-    setStatus("Live dari API ATCS Denpasar.");
-  } catch (e) {
+  let den = [], bal = [];
+  const notes = [];
+  try { den = await loadLive(); }
+  catch (e) {
     console.warn(e);
-    try {
-      cams = await (await fetch("cctvs.json")).json();
-      setStatus("API tidak bisa diakses (" + e.message + ") — memakai snapshot lokal cctvs.json.");
-    } catch {
-      setStatus("Gagal memuat daftar: " + e.message);
-      return;
-    }
+    try { den = await (await fetch("cctvs.json")).json(); notes.push("ATCS Denpasar: snapshot lokal"); }
+    catch { notes.push("ATCS Denpasar gagal dimuat"); }
   }
+  try { bal = await loadBaliLive(); }
+  catch (e) {
+    console.warn(e);
+    try { bal = await (await fetch("cctv-bali.json")).json(); notes.push("Bali Prov: snapshot lokal"); }
+    catch { notes.push("Bali Prov gagal dimuat"); }
+  }
+  den.forEach(c => { c.source = "denpasar"; });
+  bal.forEach(c => { if (!c.source) c.source = "bali"; });
+  cams = [...den, ...bal];
+  if (!cams.length) { setStatus("Gagal memuat semua sumber CCTV."); return; }
   await loadSpbu();
   computeNearest();
   fillSpbuSelect();
   const n = cams.filter(c => c.nearDist <= 1).length;
-  setStatus((document.getElementById("status").textContent + ` ${spbus.length} titik SPBU dimuat, ${n}/${cams.length} kamera dalam 1 km SPBU.`).trim());
+  setStatus(`Live: ${den.length} ATCS Denpasar + ${bal.length} Bali Prov. ${spbus.length} SPBU, ${n}/${cams.length} kamera dalam 1 km SPBU.` + (notes.length ? " (" + notes.join("; ") + ")" : ""));
   markersDirty = true;
   spbuPin = null; // indeks kamera bisa bergeser setelah reload
   render();
@@ -239,11 +273,13 @@ function filtered() {
   const radius = parseFloat(document.getElementById("radiusSel").value);
   const nearOnly = document.getElementById("nearOnly").checked;
   const sel = spbus.find(s => s.id === spbuId);
+  const src = document.getElementById("srcSel").value;
   let ids = cams.map((_, i) => i);
   if (q) ids = ids.filter(i => {
     const c = cams[i];
     return norm(c.nama_lokasi).includes(q) || norm(c.nama_alias).includes(q) || norm(c.nama).includes(q) || norm(c.ket_lokasi).includes(q);
   });
+  if (src !== "all") ids = ids.filter(i => (cams[i].source || "denpasar") === src);
   if (sel) {
     if (spbuPin && spbuPin.id === spbuId) {
       // mode pin: grid/peta menampilkan PERSIS daftar dari popup SPBU (urutan jarak),
@@ -321,10 +357,11 @@ function render() {
   grid.innerHTML = "";
   for (const k of [...players.keys()]) stopOne(k);
   const { ids, sel, radius, pinned } = filtered();
-  const hasFilter = document.getElementById("q").value.trim() !== "" || !!sel || document.getElementById("nearOnly").checked;
+  const hasFilter = document.getElementById("q").value.trim() !== "" || !!sel || document.getElementById("nearOnly").checked || document.getElementById("srcSel").value !== "all";
   document.getElementById("panelToggle").classList.toggle("hasFilter", hasFilter);
+  const nDen = cams.filter(c => (c.source || "denpasar") !== "bali").length;
   const extra = sel ? (pinned ? ` • 📌 ${ids.length} sesuai daftar popup ${sel.name} (ubah filter SPBU untuk lepas)` : ` • ≤ ${fmtKm(radius)} dari ${sel.name}`) : "";
-  document.getElementById("count").textContent = `${cams.length} kamera • ${spbus.length} SPBU • menampilkan ${ids.length}${extra}`;
+  document.getElementById("count").textContent = `${cams.length} kamera (${nDen} Denpasar + ${cams.length - nDen} Bali) • ${spbus.length} SPBU • menampilkan ${ids.length}${extra}`;
   document.getElementById("count").title = document.getElementById("count").textContent;
   const chip = document.getElementById("pinChip");
   if (pinned && sel) {
@@ -348,6 +385,7 @@ function render() {
         </div>
       </div>
       <div class="meta">
+        <span class="src${c.source === "bali" ? " bali" : ""}">${c.source === "bali" ? "📹 BALI PROV" : "📷 ATCS DPS"}</span>
         <h3>${esc(camTitle(c))}</h3>
         <p class="loc" title="${esc((c.nama_lokasi || "") + " — " + (c.ket_lokasi || ""))}">${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}</p>
         ${sName && isFinite(d) ? `<p class="spbu">⛽ ${fmtKm(d)} ke ${esc(sName)}</p>` : ""}
@@ -448,13 +486,14 @@ function ensureMarkersBuilt() {
   Object.keys(camMarkerByIdx).forEach(k => delete camMarkerByIdx[k]);
   Object.keys(spbuMarkerById).forEach(k => delete spbuMarkerById[k]);
   const camIcon = L.divIcon({ className: "", html: '<div class="mk-cctv">📷</div>', iconSize: [24,24], iconAnchor: [12,12] });
+  const baliIcon = L.divIcon({ className: "", html: '<div class="mk-bali">📹</div>', iconSize: [24,24], iconAnchor: [12,12] });
   const spbuIcon = L.divIcon({ className: "", html: '<div class="mk-spbu">⛽</div>', iconSize: [24,24], iconAnchor: [12,12] });
   cams.forEach((c, idx) => {
     if (c.lat == null) return;
-    const m = L.marker([c.lat, c.lon], { icon: camIcon });
+    const m = L.marker([c.lat, c.lon], { icon: c.source === "bali" ? baliIcon : camIcon });
     const near = c.nearSpbu && isFinite(c.nearDist)
       ? `<br>⛽ Terdekat: ${esc(c.nearSpbu.name)} (${fmtKm(c.nearDist)})` : "";
-    m.bindPopup(`<b>${esc(camTitle(c))}</b><br>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}${near}<br><button onclick="openModal(${idx})">▶ Putar CCTV</button>`);
+    m.bindPopup(`<b>${esc(camTitle(c))}</b><br>${c.source === "bali" ? "📹 CCTV Provinsi Bali" : "📷 CCTV ATCS Denpasar"}<br>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}${near}<br><button onclick="openModal(${idx})">▶ Putar CCTV</button>`);
     camMarkerByIdx[idx] = m;
   });
   spbus.forEach(s => {
@@ -556,6 +595,7 @@ document.getElementById("panelToggle").onclick = () => {
   document.getElementById("panelToggle").setAttribute("aria-expanded", String(open));
 };
 document.getElementById("q").addEventListener("input", render);
+document.getElementById("srcSel").addEventListener("change", render);
 document.getElementById("spbuSel").addEventListener("change", () => { spbuPin = null; render(); drawRadius(); });
 document.getElementById("radiusSel").addEventListener("change", () => { spbuPin = null; render(); drawRadius(); });
 document.getElementById("nearOnly").addEventListener("change", render);
