@@ -14,10 +14,8 @@
   header { position:sticky; top:0; z-index:20; background:rgba(15,20,27,.95); backdrop-filter:blur(8px); border-bottom:1px solid #2a3648; }
   .wrap { max-width:1400px; margin:0 auto; padding:14px 16px; }
   h1 { font-size:20px; margin:0 0 2px; }
-  .sub { color:var(--mut); font-size:13px; }
   .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center; }
   input[type=search], select { padding:10px 12px; border-radius:8px; border:1px solid #2a3648; background:#0d131c; color:var(--txt); font-size:14px; }
-  input[type=search] { flex:2; min-width:180px; }
   select { flex:1; min-width:170px; }
   label.chk { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--txt); background:var(--card2); border:1px solid #2a3648; border-radius:8px; padding:9px 12px; cursor:pointer; }
   button { padding:10px 14px; border-radius:8px; border:1px solid #2a3648; background:var(--card2); color:var(--txt); cursor:pointer; font-size:14px; }
@@ -25,7 +23,7 @@
   button.primary { background:var(--acc); border-color:var(--acc); }
   button.danger { background:#5a1f1f; border-color:var(--bad); }
   button:disabled { opacity:.5; cursor:not-allowed; }
-  .tabs { display:flex; gap:6px; margin-top:10px; }
+  .tabs { display:flex; gap:6px; flex-shrink:0; margin-left:auto; }
   .tabs button.on { background:var(--acc); border-color:var(--acc); }
   #grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:14px; padding:16px; max-width:1400px; margin:0 auto; }
   #grid.hide { display:none; }
@@ -51,30 +49,30 @@
   #modalBox { width:min(1100px,100%); }
   #modal video { width:100%; max-height:78vh; background:#000; border-radius:8px; }
   #status { padding:0 16px 16px; max-width:1400px; margin:0 auto; color:var(--mut); font-size:13px; }
-  .titleRow { display:flex; align-items:center; gap:8px; }
-  .titleRow h1 { flex:1; }
-  #panelToggle { display:none; position:relative; white-space:nowrap; }
+  .titleRow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  #q { flex:1 1 auto; min-width:170px; max-width:440px; }
+  .sub { color:var(--mut); font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:330px; flex-shrink:0; }
+  #panelToggle { display:inline-flex; position:relative; white-space:nowrap; flex-shrink:0; }
+  #panel:not(.open) { display:none; }
+  .row button { padding:6px 9px; font-size:12.5px; }
+  .meta .loc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #panelToggle.hasFilter::after { content:""; position:absolute; top:5px; right:5px; width:9px; height:9px; border-radius:50%; background:var(--warn); }
   #pinChip { display:flex; align-items:center; gap:8px; margin-top:8px; padding:8px 12px; border-radius:8px; background:rgba(210,153,34,.15); border:1px solid var(--warn); font-size:13px; }
   #pinChip[hidden] { display:none; }
   #pinChip button { padding:4px 10px; font-size:12px; margin-left:auto; white-space:nowrap; }
   @media (max-width:720px) {
     .wrap { padding:10px 12px; }
-    h1 { font-size:16px; }
     .sub { font-size:12px; }
-    #panelToggle { display:inline-flex; padding:8px 12px; font-size:13px; }
-    #panel { display:none; }
-    #panel.open { display:block; }
+    #panelToggle { padding:8px 12px; font-size:13px; }
+    #q { min-width:0; }
     #panel .toolbar button, #panel label.chk { font-size:13px; padding:8px 10px; }
-    .tabs { margin-top:8px; }
+    .titleRow .tabs { flex-basis:100%; order:3; margin-top:8px; margin-left:0; }
+    #count { flex-basis:100%; order:4; margin-top:2px; max-width:none; }
     .tabs button { flex:1; padding:8px 6px; font-size:13px; }
     #grid { grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; padding:10px; }
     #mapWrap { padding:10px; }
     #map { height:calc(100vh - 230px); min-height:340px; }
     #modal { padding:10px; }
-  }
-  @media (min-width:721px) {
-    #panel { display:block !important; }
   }
   .leaflet-popup-content { color:#111; font-size:13px; }
   .leaflet-popup-content button { padding:6px 10px; font-size:13px; background:#2f81f7; color:#fff; border:0; margin-top:6px; }
@@ -85,13 +83,16 @@
 <body>
 <header><div class="wrap">
   <div class="titleRow">
-    <h1>CCTV ATCS Kota Denpasar + Peta SPBU</h1>
+    <input type="search" id="q" placeholder="Cari lokasi CCTV… (cth: Teuku Umar)">
+    <div class="sub" id="count">Memuat…</div>
+    <div class="tabs">
+      <button id="tabGrid">🖼 Grid Kamera</button>
+      <button id="tabMap" class="on">🗺 Peta CCTV + SPBU</button>
+    </div>
     <button id="panelToggle" aria-expanded="false" aria-controls="panel">☰ Filter</button>
   </div>
-  <div class="sub" id="count">Memuat…</div>
   <div id="panel">
   <div class="toolbar">
-    <input type="search" id="q" placeholder="Cari lokasi / simpang… (cth: Teuku Umar)">
     <select id="spbuSel" title="Filter berdasarkan SPBU"><option value="all">⛽ Semua SPBU</option></select>
     <select id="radiusSel" title="Radius dari SPBU">
       <option value="0.5">≤ 0,5 km dari SPBU</option>
@@ -107,10 +108,6 @@
     <button id="stopAll" class="danger">⏹ Stop semua</button>
     <button id="checkBtn">📡 Cek status</button>
   </div>
-  </div>
-  <div class="tabs">
-    <button id="tabGrid">🖼 Grid Kamera</button>
-    <button id="tabMap" class="on">🗺 Peta CCTV + SPBU</button>
   </div>
   <div id="pinChip" hidden>
     <span id="pinChipTxt"></span>
@@ -327,6 +324,7 @@ function render() {
   document.getElementById("panelToggle").classList.toggle("hasFilter", hasFilter);
   const extra = sel ? (pinned ? ` • 📌 ${ids.length} sesuai daftar popup ${sel.name} (ubah filter SPBU untuk lepas)` : ` • ≤ ${fmtKm(radius)} dari ${sel.name}`) : "";
   document.getElementById("count").textContent = `${cams.length} kamera • ${spbus.length} SPBU • menampilkan ${ids.length}${extra}`;
+  document.getElementById("count").title = document.getElementById("count").textContent;
   const chip = document.getElementById("pinChip");
   if (pinned && sel) {
     chip.hidden = false;
@@ -350,15 +348,14 @@ function render() {
       </div>
       <div class="meta">
         <h3>${esc(camTitle(c))}</h3>
-        <p>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}</p>
+        <p class="loc" title="${esc((c.nama_lokasi || "") + " — " + (c.ket_lokasi || ""))}">${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}</p>
         ${sName && isFinite(d) ? `<p class="spbu">⛽ ${fmtKm(d)} ke ${esc(sName)}</p>` : ""}
         <div class="row">
           <button data-act="play" class="primary">▶ Putar</button>
           <button data-act="full">⛶ Fullscreen</button>
           <button data-act="map">🗺 Peta</button>
-          <button data-act="copy" title="Salin URL HLS">🔗 Copy URL</button>
+          <button data-act="copy" title="Salin URL HLS (klik untuk menyalin)">🔗 Copy URL</button>
         </div>
-        <div class="small">${esc(c.hls)}</div>
       </div>`;
     card.querySelector("[data-act=play]").onclick = () => {
       players.has(idx) ? (stopOne(idx), restorePlaceholder(idx), setBadge(card.querySelector(".badge"), "", "IDLE"))
@@ -539,6 +536,12 @@ function showTab(which) {
 }
 document.getElementById("tabGrid").onclick = () => showTab("grid");
 document.getElementById("tabMap").onclick = () => showTab("map");
+
+// panel filter: default terbuka di desktop, tertutup di mobile (CSS)
+if (window.innerWidth > 720) {
+  document.getElementById("panel").classList.add("open");
+  document.getElementById("panelToggle").setAttribute("aria-expanded", "true");
+}
 
 // --- toolbar ---
 document.getElementById("pinClear").onclick = () => {
