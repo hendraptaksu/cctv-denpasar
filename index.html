@@ -47,7 +47,16 @@
   #modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:1000; align-items:center; justify-content:center; padding:20px; }
   #modal.open { display:flex; }
   #modalBox { width:min(1100px,100%); }
-  #modal video { width:100%; max-height:78vh; background:#000; border-radius:8px; }
+  #modal video { width:100%; max-height:78vh; background:#000; border-radius:8px; display:block; }
+  #modalStage { position:relative; }
+  #modalStatus { position:absolute; inset:0; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; background:rgba(0,0,0,.72); border-radius:8px; text-align:center; padding:16px; }
+  #modalStatus[hidden] { display:none; }
+  #modalStatus .spin { width:44px; height:44px; border:4px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:mspin .9s linear infinite; }
+  #modalStatus.err .spin { display:none; }
+  #modalStatusTxt { font-size:15px; }
+  #modalLive { position:absolute; top:10px; left:10px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px; background:var(--bad); }
+  #modalLive[hidden] { display:none; }
+  @keyframes mspin { to { transform:rotate(360deg); } }
   #status { padding:0 16px 16px; max-width:1400px; margin:0 auto; color:var(--mut); font-size:13px; }
   .titleRow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   #q { flex:1 1 auto; min-width:170px; max-width:440px; }
@@ -131,11 +140,19 @@
 <div id="status"></div>
 
 <div id="modal"><div id="modalBox">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <div id="modalTitle" style="font-weight:700"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
+    <div style="min-width:0"><div id="modalTitle" style="font-weight:700"></div><div id="modalSub" class="sub"></div></div>
     <button id="modalClose">✕ Tutup</button>
   </div>
-  <video id="modalVideo" controls autoplay muted playsinline></video>
+  <div id="modalStage">
+    <video id="modalVideo" controls autoplay muted playsinline></video>
+    <div id="modalStatus">
+      <div class="spin"></div>
+      <div id="modalStatusTxt">Menghubungkan…</div>
+      <div id="modalStatusBtns" hidden><button id="modalRetry" class="primary">🔄 Coba lagi</button></div>
+    </div>
+    <div id="modalLive" hidden>● LIVE</div>
+  </div>
 </div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.10"></script>
@@ -298,22 +315,69 @@ function filtered() {
 }
 
 // --- video ---
-function attachStream(video, hlsUrl, onErr) {
+function attachStream(video, hlsUrl, cbs) {
+  // cbs: {onFatal(data), onRetry(attempt, max)} — retry otomatis spt situs aslinya
+  const MAX_RETRY = 3, RETRY_DELAY = 2000;
+  const onFatal = cbs && cbs.onFatal, onRetry = cbs && cbs.onRetry;
   if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    let attempt = 0, dead = false, timer = null;
+    const onErr = () => {
+      if (dead) return;
+      attempt++;
+      if (attempt <= MAX_RETRY) {
+        onRetry && onRetry(attempt, MAX_RETRY);
+        timer = setTimeout(() => { if (!dead) { video.src = hlsUrl; video.play().catch(() => {}); } }, RETRY_DELAY);
+      } else {
+        onFatal && onFatal();
+      }
+    };
+    video.addEventListener("error", onErr);
     video.src = hlsUrl;
     video.play().catch(() => {});
-    return { destroy() { video.removeAttribute("src"); video.load(); } };
+    return { destroy() { dead = true; if (timer) clearTimeout(timer); video.removeEventListener("error", onErr); video.removeAttribute("src"); video.load(); } };
   }
-  if (window.Hls && Hls.isSupported()) {
-    const hls = new Hls({ maxLiveSyncPlaybackRate: 1.5 });
-    hls.on(Hls.Events.ERROR, (evt, data) => { if (data && data.fatal && onErr) onErr(data); });
+  if (!(window.Hls && Hls.isSupported())) {
+    video.src = hlsUrl; // last resort
+    return { destroy() {} };
+  }
+  let hls = null, dead = false, attempt = 0, recovered = false, timer = null;
+  function cleanupHls() { try { hls && hls.destroy(); } catch {} hls = null; }
+  function start() {
+    if (dead) return;
+    recovered = false;
+    hls = new Hls({
+      maxLiveSyncPlaybackRate: 1.5,
+      manifestLoadingMaxRetry: 2, levelLoadingMaxRetry: 3, fragLoadingMaxRetry: 4,
+    });
+    hls.on(Hls.Events.ERROR, (evt, data) => {
+      if (!data || !data.fatal || dead) return;
+      if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !recovered) {
+        recovered = true;
+        try { hls.recoverMediaError(); return; } catch {}
+      }
+      attempt++;
+      if (attempt <= MAX_RETRY) {
+        onRetry && onRetry(attempt, MAX_RETRY);
+        cleanupHls();
+        timer = setTimeout(start, RETRY_DELAY);
+      } else {
+        cleanupHls();
+        onFatal && onFatal(data);
+      }
+    });
     hls.loadSource(hlsUrl);
     hls.attachMedia(video);
     video.play().catch(() => {});
-    return hls;
   }
-  video.src = hlsUrl;
-  return { destroy() {} };
+  start();
+  return {
+    destroy() {
+      dead = true;
+      if (timer) clearTimeout(timer);
+      cleanupHls();
+      try { video.removeAttribute("src"); video.load(); } catch {}
+    }
+  };
 }
 function playInto(idx) {
   stopOne(idx);
@@ -327,7 +391,10 @@ function playInto(idx) {
   v.controls = true; v.muted = true; v.autoplay = true; v.playsInline = true;
   view.prepend(v);
   const badge = card.querySelector(".badge");
-  players.set(idx, { video: v, hls: attachStream(v, cam.hls, () => setBadge(badge, "off", "OFFLINE")) });
+  players.set(idx, { video: v, hls: attachStream(v, cam.hls, {
+    onFatal: () => setBadge(badge, "off", "OFFLINE"),
+    onRetry: (a, m) => setBadge(badge, "", "RETRY " + a + "/" + m),
+  }) });
   v.addEventListener("playing", () => setBadge(badge, "live", "● LIVE"));
   v.addEventListener("error", () => setBadge(badge, "off", "OFFLINE"), true);
   card.querySelector("[data-act=play]").textContent = "⏹ Stop";
@@ -413,22 +480,64 @@ function render() {
 }
 
 // --- modal ---
-let modalHls = null;
+let modalHls = null, modalIdx = null, modalTimer = null, modalEverPlayed = false;
+function setModalStatus(mode, txt) {
+  const st = document.getElementById("modalStatus");
+  if (!mode) { st.hidden = true; return; }
+  st.hidden = false;
+  st.classList.toggle("err", mode === "error");
+  document.getElementById("modalStatusTxt").textContent = txt || "";
+  document.getElementById("modalStatusBtns").hidden = mode !== "error";
+}
+function modalFail(msg) {
+  if (modalTimer) { clearTimeout(modalTimer); modalTimer = null; }
+  if (modalIdx != null) statusCache[modalIdx] = { state: "offline", t: Date.now() };
+  document.getElementById("modalLive").hidden = true;
+  setModalStatus("error", msg || "Gagal memuat stream — kamera kemungkinan offline.");
+}
 function openModal(idx) {
   const c = cams[idx];
+  modalIdx = idx; modalEverPlayed = false;
   document.getElementById("modalTitle").textContent = camTitle(c);
+  document.getElementById("modalSub").textContent =
+    (c.source === "bali" ? "📹 Bali Prov" : "📷 ATCS Denpasar") + " • " +
+    [c.nama_lokasi, c.ket_lokasi].filter(Boolean).join(" — ") +
+    (c.nearSpbu && isFinite(c.nearDist) ? ` • ⛽ ${fmtKm(c.nearDist)} ke ${c.nearSpbu.name}` : "");
   document.getElementById("modal").classList.add("open");
+  document.getElementById("modalLive").hidden = true;
+  setModalStatus("loading", "Menghubungkan ke kamera…");
   const v = document.getElementById("modalVideo");
   try { modalHls && modalHls.destroy(); } catch {}
-  modalHls = attachStream(v, c.hls, null);
+  if (modalTimer) clearTimeout(modalTimer);
+  modalTimer = setTimeout(() => modalFail("Kamera tidak merespons dalam 20 detik — kemungkinan offline."), 20000);
+  v.onwaiting = () => { if (modalEverPlayed) setModalStatus("loading", "Buffering…"); };
+  v.onstalled = () => { if (modalEverPlayed) setModalStatus("loading", "Buffering…"); };
+  v.onplaying = () => {
+    modalEverPlayed = true;
+    if (modalTimer) { clearTimeout(modalTimer); modalTimer = null; }
+    statusCache[idx] = { state: "online", t: Date.now() };
+    setModalStatus(null);
+    document.getElementById("modalLive").hidden = false;
+  };
+  v.onerror = () => modalFail();
+  modalHls = attachStream(v, c.hls, {
+    onFatal: () => modalFail(),
+    onRetry: (a, m) => setModalStatus("loading", `Menghubungkan ulang (${a}/${m})…`),
+  });
 }
 window.openModal = openModal; // dipakai popup peta
 function closeModal() {
   document.getElementById("modal").classList.remove("open");
+  if (modalTimer) { clearTimeout(modalTimer); modalTimer = null; }
   const v = document.getElementById("modalVideo");
+  v.onwaiting = v.onstalled = v.onplaying = v.onerror = null;
   try { modalHls && modalHls.destroy(); } catch {}
-  modalHls = null; v.removeAttribute("src"); v.load();
+  modalHls = null; modalIdx = null; modalEverPlayed = false;
+  v.removeAttribute("src"); v.load();
+  setModalStatus(null);
+  document.getElementById("modalLive").hidden = true;
 }
+document.getElementById("modalRetry").onclick = () => { if (modalIdx != null) openModal(modalIdx); };
 document.getElementById("modalClose").onclick = closeModal;
 document.getElementById("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
