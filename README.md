@@ -28,6 +28,8 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
 - `index.html` — program utama (satu file, tanpa build, tanpa install).
 - `cctvs.json` — snapshot 164 kamera ATCS Denpasar; dipakai otomatis kalau API live tidak bisa diakses.
 - `cctv-bali.json` — snapshot 91 kamera Provinsi Bali (Bali Satu Data); fallback bila API live gagal.
+- `cctv-badung.json` — 128 titik CCTV Kab. Badung (Peta Smart City, dari sumber kontribusi);
+  lokasi saja tanpa stream publik → tampil sebagai marker 🏛️ di peta, tidak ikut grid/playback.
 - `spbu.json` — 41 titik SPBU di Denpasar + Sunset Road/Kuta (sumber: OpenStreetMap via Nominatim,
   sudah diaudit per titik via kategori OSM; 3 titik non-SPBU — Instalasi Aspal,
   depot Pedungan, kantor Jl. Sugianyar — dibuang);
@@ -89,6 +91,9 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
   apa adanya.
 - ATCS Badung (`badung.atcsindonesia.info`) saat ini **tidak bisa diakses**
   (koneksi gagal total, sudah dicoba http+https; bahkan ada berita lokal soal gangguannya).
+  Sebagai gantinya 128 titik CCTV Kab. Badung (Peta Smart City: Kuta, Legian,
+  Seminyak, Canggu, Dalung, Cemagi, RSUD Kapal) tampil sebagai marker 🏛️
+  lokasi-saja di peta — belum ada stream publiknya.
   Untungnya area Badung/Sunset Road ter-cover kamera Provinsi Bali
   (20 kamera ≤3 km dari Sunset Road, terdekat 0,7 km di Legian).
 - Semua stream diputar dengan `hls.js` (Chrome/Firefox/Edge) atau HLS native (Safari).
