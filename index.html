@@ -55,6 +55,9 @@
   .titleRow h1 { flex:1; }
   #panelToggle { display:none; position:relative; white-space:nowrap; }
   #panelToggle.hasFilter::after { content:""; position:absolute; top:5px; right:5px; width:9px; height:9px; border-radius:50%; background:var(--warn); }
+  #pinChip { display:flex; align-items:center; gap:8px; margin-top:8px; padding:8px 12px; border-radius:8px; background:rgba(210,153,34,.15); border:1px solid var(--warn); font-size:13px; }
+  #pinChip[hidden] { display:none; }
+  #pinChip button { padding:4px 10px; font-size:12px; margin-left:auto; white-space:nowrap; }
   @media (max-width:720px) {
     .wrap { padding:10px 12px; }
     h1 { font-size:16px; }
@@ -108,6 +111,10 @@
   <div class="tabs">
     <button id="tabGrid">🖼 Grid Kamera</button>
     <button id="tabMap" class="on">🗺 Peta CCTV + SPBU</button>
+  </div>
+  <div id="pinChip" hidden>
+    <span id="pinChipTxt"></span>
+    <button id="pinClear" title="Lepas pin, tampilkan semua">✕ Lepas</button>
   </div>
 </div></header>
 
@@ -320,6 +327,13 @@ function render() {
   document.getElementById("panelToggle").classList.toggle("hasFilter", hasFilter);
   const extra = sel ? (pinned ? ` • 📌 ${ids.length} sesuai daftar popup ${sel.name} (ubah filter SPBU untuk lepas)` : ` • ≤ ${fmtKm(radius)} dari ${sel.name}`) : "";
   document.getElementById("count").textContent = `${cams.length} kamera • ${spbus.length} SPBU • menampilkan ${ids.length}${extra}`;
+  const chip = document.getElementById("pinChip");
+  if (pinned && sel) {
+    chip.hidden = false;
+    document.getElementById("pinChipTxt").textContent = `📌 ${ids.length} CCTV sesuai popup ${sel.name}`;
+  } else {
+    chip.hidden = true;
+  }
   for (const idx of ids) {
     const c = cams[idx];
     const d = sel ? hav(c.lat, c.lon, sel.lat, sel.lon) : c.nearDist;
@@ -527,6 +541,12 @@ document.getElementById("tabGrid").onclick = () => showTab("grid");
 document.getElementById("tabMap").onclick = () => showTab("map");
 
 // --- toolbar ---
+document.getElementById("pinClear").onclick = () => {
+  spbuPin = null;
+  document.getElementById("spbuSel").value = "all";
+  document.getElementById("nearOnly").checked = false;
+  render(); drawRadius();
+};
 document.getElementById("panelToggle").onclick = () => {
   const open = document.getElementById("panel").classList.toggle("open");
   document.getElementById("panelToggle").setAttribute("aria-expanded", String(open));
