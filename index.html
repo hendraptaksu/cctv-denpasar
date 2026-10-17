@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CCTV ATCS Denpasar — Viewer + Peta SPBU</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <style>
   :root { --bg:#0f141b; --card:#1a2230; --card2:#222d42; --txt:#eef2f7; --mut:#9aa7bd; --acc:#2f81f7; --ok:#2ea043; --bad:#f85149; --warn:#d29922; }
   * { box-sizing:border-box; }
@@ -126,6 +128,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.10"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
 "use strict";
 const API = "https://atcs.denpasarkota.go.id/api/v3/pv/ldevice?orderBy=id_lokasi&sortedBy=asc";
@@ -421,7 +424,9 @@ function initMap() {
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19, attribution: "© OpenStreetMap"
   }).addTo(map);
-  cctvLayer = L.layerGroup().addTo(map);
+  cctvLayer = (L.markerClusterGroup
+    ? L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 45, disableClusteringAtZoom: 16 })
+    : L.layerGroup()).addTo(map);
   spbuLayer = L.layerGroup().addTo(map);
   return true;
 }
@@ -482,9 +487,16 @@ window.filterBySpbu = function(id) {
 function focusCam(idx) {
   if (!map) return;
   const c = cams[idx];
-  map.setView([c.lat, c.lon], 16);
   const m = camMarkerByIdx[idx];
-  if (m) setTimeout(() => m.openPopup(), 300);
+  if (!m) return;
+  if (cctvLayer.zoomToShowLayer) {
+    // marker mungkin di dalam cluster: zoom sampai pecah lalu buka popup
+    map.setView([c.lat, c.lon], Math.max(map.getZoom(), 14));
+    cctvLayer.zoomToShowLayer(m, () => m.openPopup());
+  } else {
+    map.setView([c.lat, c.lon], 16);
+    setTimeout(() => m.openPopup(), 300);
+  }
 }
 function drawRadius(zoom = true) {
   if (!map) return;
