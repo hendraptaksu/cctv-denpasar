@@ -75,6 +75,8 @@
     #panelToggle { padding:8px 12px; font-size:13px; }
     #q { min-width:0; }
     #panel .toolbar button, #panel label.chk { font-size:13px; padding:8px 10px; }
+    #actionsRow { flex-wrap:wrap; }
+    #actionsRow button { flex:1 1 40%; font-size:12.5px; padding:8px 6px; }
     .titleRow .tabs { flex-basis:100%; order:3; margin-top:8px; margin-left:0; }
     #count { flex-basis:100%; order:4; margin-top:2px; max-width:none; }
     .tabs button { flex:1; padding:8px 6px; font-size:13px; }
@@ -124,12 +126,12 @@
     </select>
     <label class="chk"><input type="checkbox" id="nearOnly"> CCTV dekat SPBU saja</label>
   </div>
-  <div class="toolbar">
+  </div>
+  <div class="toolbar" id="actionsRow">
     <button id="refresh">⟳ Refresh daftar</button>
     <button id="playVisible" class="primary">▶ Putar yang tampil</button>
     <button id="stopAll" class="danger">⏹ Stop semua</button>
     <button id="checkBtn">📡 Cek status</button>
-  </div>
   </div>
   <div id="pinChip" hidden>
     <span id="pinChipTxt"></span>
