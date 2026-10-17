@@ -131,7 +131,6 @@
     <button id="refresh">⟳ Refresh daftar</button>
     <button id="playVisible" class="primary">▶ Putar yang tampil</button>
     <button id="stopAll" class="danger">⏹ Stop semua</button>
-    <button id="checkBtn">📡 Cek status</button>
   </div>
   <div id="pinChip" hidden>
     <span id="pinChipTxt"></span>
@@ -172,6 +171,22 @@ const HEADERS = { "x-client-id": "a194e6ae-d4dd-4b62-a0ac-388922f09303", "x-clie
 const BALI_API = "https://balisatudata.baliprov.go.id/api/v1/report-cctv";
 const BALI_HLS = "https://transcode.baliprov.go.id/cctv/";
 const BALI_PLAYER = "https://transcode.baliprov.go.id/cctv-player.html?id=";
+// Koreksi koordinat kamera yg data aslinya jatuh di laut (anchor OSM, terverifikasi).
+// Diterapkan ke data live; snapshot cctv-bali.json sudah dikoreksi duluan.
+const BALI_POS_FIX = {
+  "parkiran-pantai-legian": [-8.7033483, 115.1644635],
+  "jl-pantai-kuta-depan-hardrock": [-8.7213811, 115.1710966],
+  "jalan-seminyak-depan-swalayan-bintanggg-keraton": [-8.6942062, 115.1680418],
+  "jl-arjuna-parkiran-pantai-doublesix": [-8.6966208, 115.1614832],
+  "pantai-kuta-c01-cctv1": [-8.7182136, 115.1687568],
+  "pantai-kuta-c01-cctv2": [-8.7182136, 115.1687568],
+  "pantai-kuta-c01-cctv3": [-8.7182136, 115.1687568],
+  "pantai-kuta-c04-cctv1": [-8.7182136, 115.1687568],
+  "pantai-kuta-c05-cctv1": [-8.7182136, 115.1687568],
+  "pantai-kuta-c05-cctv2": [-8.7182136, 115.1687568],
+  "pasar-seni-kuta-c01-cctv1": [-8.7247843, 115.1704146],
+  "pasar-seni-kuta-c01-cctv2": [-8.7247843, 115.1704146],
+};
 let cams = [];   // + {nearSpbu, nearDist}
 let spbus = [];  // {id,name,lat,lon,addr}
 let spbuPin = null; // {id, ids[]} — daftar persis dari popup SPBU via "Tampilkan di grid"
@@ -211,14 +226,27 @@ async function loadLive() {
 }
 
 function mapBaliCam(r) {
-  const lat = parseFloat(r.lat), lon = parseFloat(r.lng);
-  if (!isFinite(lat) || !isFinite(lon) || !r.ch_id) return null;
+  let lat = parseFloat(r.lat), lon = parseFloat(r.lng);
+  if (!isFinite(lat) || !isFinite(lon)) return null;
+  // ch_id kadang kosong (mis. 7 kamera Shinobi Buleleng + 3 player transcode):
+  // turunkan dari ?id= di streaming_url bila host-nya transcode Bali.
+  let ch = r.ch_id || null;
+  const su = r.streaming_url || "";
+  if (!ch && su.includes("transcode.baliprov.go.id")) {
+    const m = su.match(/[?&]id=([A-Za-z0-9_-]+)/);
+    if (m) ch = m[1];
+  }
+  const direct = /\.mp4(\?|#|$)/i.test(su); // media langsung (Shinobi Buleleng), bukan HLS
+  if (!ch && !direct) return null;
+  let approx = false;
+  const fix = ch && BALI_POS_FIX[ch];
+  if (fix) { lat = fix[0]; lon = fix[1]; approx = true; }
   return {
     id_lokasi: "bali-" + r.cctv_id, nama_lokasi: r.ch_name, ket_lokasi: "CCTV Provinsi Bali (Bali Satu Data)",
     lat, lon, nama: r.ch_name, nama_alias: r.ch_name,
-    stream_page: r.streaming_url || (BALI_PLAYER + r.ch_id),
-    hls: BALI_HLS + r.ch_id + "/index.m3u8",
-    poster: null, source: "bali",
+    stream_page: su || (BALI_PLAYER + ch),
+    hls: ch ? BALI_HLS + ch + "/index.m3u8" : su,
+    poster: null, source: "bali", pos_perkiraan: approx || undefined,
   };
 }
 
@@ -326,6 +354,25 @@ function attachStream(video, hlsUrl, cbs) {
   // cbs: {onFatal(data), onRetry(attempt, max)} — retry otomatis spt situs aslinya
   const MAX_RETRY = 3, RETRY_DELAY = 2000;
   const onFatal = cbs && cbs.onFatal, onRetry = cbs && cbs.onRetry;
+  // Media langsung non-HLS (mis. MP4 Shinobi Buleleng): putar native + retry,
+  // jangan dilewatkan ke hls.js.
+  if (!/\.m3u8(\?|#|$)/i.test(hlsUrl || "")) {
+    let attempt = 0, dead = false, timer = null;
+    const onErr = () => {
+      if (dead) return;
+      attempt++;
+      if (attempt <= MAX_RETRY) {
+        onRetry && onRetry(attempt, MAX_RETRY);
+        timer = setTimeout(() => { if (!dead) { video.src = hlsUrl; video.play().catch(() => {}); } }, RETRY_DELAY);
+      } else {
+        onFatal && onFatal();
+      }
+    };
+    video.addEventListener("error", onErr);
+    video.src = hlsUrl;
+    video.play().catch(() => {});
+    return { destroy() { dead = true; if (timer) clearTimeout(timer); video.removeEventListener("error", onErr); video.removeAttribute("src"); video.load(); } };
+  }
   if (video.canPlayType("application/vnd.apple.mpegurl")) {
     let attempt = 0, dead = false, timer = null;
     const onErr = () => {
@@ -549,33 +596,22 @@ document.getElementById("modalClose").onclick = closeModal;
 document.getElementById("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 
-// --- status stream (dipakai popup SPBU & tombol Cek status) ---
+// --- status stream: HANYA dari hasil putar nyata (player), bukan tebakan fetch.
+// "online" = pernah terpancar (event playing); "offline" = pernah gagal fatal.
+// Keduanya advisory: semua kamera SELALU bisa diklik/dicoba ulang.
 const statusCache = {}; // idx -> {state:"online"|"offline", t:timestamp}
-async function checkCamStatus(idx) {
-  const now = Date.now();
-  const hit = statusCache[idx];
-  if (hit && now - hit.t < 5*60*1000) return hit.state;
-  let state = "offline";
-  try {
-    const r = await fetch(cams[idx].hls, { cache: "no-store" });
-    if (r.ok) state = "online";
-  } catch { state = "offline"; }
-  statusCache[idx] = { state, t: now };
-  return state;
-}
 function spbuNearby(s, maxKm = 1, maxN = 8) {
   return cams.map((c, idx) => ({ c, idx, d: hav(c.lat, c.lon, s.lat, s.lon) }))
     .filter(({ d }) => d <= maxKm).sort((a,b) => a.d - b.d).slice(0, maxN);
 }
-function spbuPopupHtml(s, states) {
+function spbuPopupHtml(s) {
   const nearby = spbuNearby(s);
-  const rank = st => st === "online" ? 0 : st === "offline" ? 2 : 1;
-  nearby.sort((a,b) => (rank(states[a.idx]) - rank(states[b.idx])) || (a.d - b.d));
+  const rank = idx => { const h = statusCache[idx]; return !h ? 1 : h.state === "online" ? 0 : 2; };
+  nearby.sort((a,b) => (rank(a.idx) - rank(b.idx)) || (a.d - b.d));
   const list = nearby.length ? "<br>" + nearby.map(({ c, idx, d }) => {
-    const st = states[idx];
-    if (st === "offline") return `<span style="color:#999">• ${fmtKm(d)} — ${esc(camTitle(c))} (offline)</span>`;
-    const wait = st ? "" : " ⏳";
-    return `• ${fmtKm(d)} — <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>${wait}`;
+    const st = statusCache[idx] && statusCache[idx].state;
+    const flag = st === "online" ? ` <span style="color:#1a7f37">●</span>` : st === "offline" ? ` <span style="color:#999">(⚠ pernah gagal — klik untuk coba lagi)</span>` : "";
+    return `• ${fmtKm(d)} — <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>${flag}`;
   }).join("<br>") : "<br><i>Belum ada CCTV dalam 1 km.</i>";
   return `<b>⛽ ${esc(s.name)}</b><br>${esc(s.addr || "")}<br><b>CCTV terdekat (≤1 km):</b>${list}<br><button onclick="filterBySpbu('${s.id}')"${nearby.length ? "" : " disabled"}>Tampilkan di grid</button>`;
 }
@@ -605,20 +641,29 @@ function initMap() {
   spbuLayer = L.layerGroup().addTo(map);
   return true;
 }
-// Popup satu titik: 1 kamera -> detail penuh; >1 kamera -> daftar pilihan + status.
-function groupPopupHtml(g, list, states) {
+// Popup satu titik: 1 kamera -> detail penuh; >1 kamera -> daftar pilihan.
+// Semua SELALU bisa diklik; penanda ●/⚠ hanya info dari hasil putar sebelumnya.
+function groupPopupHtml(g, list) {
+  const flagFor = (idx) => {
+    const h = statusCache[idx];
+    if (!h) return "";
+    if (h.state === "online") return ` <span style="color:#1a7f37">●</span>`;
+    return ` <span style="color:#999">(⚠ pernah gagal — klik untuk coba lagi)</span>`;
+  };
   if (list.length === 1) {
     const idx = list[0], c = cams[idx];
     const near = c.nearSpbu && isFinite(c.nearDist)
       ? `<br>⛽ Terdekat: ${esc(c.nearSpbu.name)} (${fmtKm(c.nearDist)})` : "";
-    return `<b>${esc(camTitle(c))}</b><br>${c.source === "bali" ? "📹 CCTV Provinsi Bali" : "📷 CCTV ATCS Denpasar"}<br>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}${near}<br><button onclick="openModal(${idx})">▶ Putar CCTV</button>`;
+    const approx = c.pos_perkiraan ? `<br>📍 <i>posisi perkiraan (koordinat asli di laut)</i>` : "";
+    const flag = statusCache[idx] && statusCache[idx].state === "offline"
+      ? `<br><span style="color:#999"><i>⚠ percobaan sebelumnya gagal — silakan coba lagi.</i></span>` : "";
+    return `<b>${esc(camTitle(c))}</b><br>${c.source === "bali" ? "📹 CCTV Provinsi Bali" : "📷 CCTV ATCS Denpasar"}<br>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}${near}${approx}${flag}<br><button onclick="openModal(${idx})">▶ Putar CCTV</button>`;
   }
   const rows = list.map(idx => {
     const c = cams[idx];
     const tag = c.source === "bali" ? "📹" : "📷";
-    if (states[idx] === "offline") return `<div>${tag} ${esc(camTitle(c))} <span style="color:#999">(offline)</span></div>`;
-    const wait = states[idx] ? "" : " ⏳";
-    return `<div>${tag} <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>${wait}</div>`;
+    const approx = c.pos_perkiraan ? " 📍" : "";
+    return `<div>${tag} <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>${approx}${flagFor(idx)}</div>`;
   }).join("");
   return `<b>${list.length} kamera di titik ini</b><br>${esc(g.label)}<br>${rows}`;
 }
@@ -648,36 +693,19 @@ function ensureMarkersBuilt() {
     const bali = g.idxs.every(i => cams[i].source === "bali");
     const m = L.marker([g.lat, g.lon], { icon: iconFor(g.idxs.length, bali) });
     m.bindPopup("");
-    m.on("popupopen", async () => {
+    m.on("popupopen", () => {
       const set = new Set(filtered().ids);
       let list = g.idxs.filter(i => set.has(i));
       if (!list.length) list = g.idxs;
-      const states = {};
-      list.forEach(i => { const h = statusCache[i]; if (h) states[i] = h.state; });
-      m.getPopup().setContent(groupPopupHtml(g, list, states));
-      const pending = list.filter(i => !(i in states));
-      if (pending.length) {
-        await Promise.all(pending.map(async i => { states[i] = await checkCamStatus(i); }));
-        const p = m.getPopup();
-        if (p && p.isOpen()) p.setContent(groupPopupHtml(g, list, states));
-      }
+      m.getPopup().setContent(groupPopupHtml(g, list));
     });
     groupMarkerByKey[g.key] = m;
   });
   spbus.forEach(s => {
     const m = L.marker([s.lat, s.lon], { icon: spbuIcon });
-    m.bindPopup(spbuPopupHtml(s, {}));
-    m.on("popupopen", async () => {
-      const ids = spbuNearby(s).map(({ idx }) => idx);
-      const states = {};
-      ids.forEach(i => { const h = statusCache[i]; if (h) states[i] = h.state; });
-      m.getPopup().setContent(spbuPopupHtml(s, states));
-      const pending = ids.filter(i => !(i in states));
-      if (pending.length) {
-        await Promise.all(pending.map(async i => { states[i] = await checkCamStatus(i); }));
-        const p = m.getPopup();
-        if (p && p.isOpen()) p.setContent(spbuPopupHtml(s, states));
-      }
+    m.bindPopup(spbuPopupHtml(s));
+    m.on("popupopen", () => {
+      m.getPopup().setContent(spbuPopupHtml(s));
     });
     spbuMarkerById[s.id] = m;
   });
@@ -789,28 +817,6 @@ document.getElementById("playVisible").onclick = () => {
   if (ids.length > 12 && !confirm(`Ada ${ids.length} kamera tampil. Memutar banyak stream sekaligus bisa berat. Putar 12 pertama saja?`)) return;
   showTab("grid");
   list.forEach(playInto);
-};
-document.getElementById("checkBtn").onclick = async () => {
-  const btn = document.getElementById("checkBtn");
-  btn.disabled = true;
-  const { ids } = filtered();
-  let online = 0;
-  setStatus(`Mengecek status ${ids.length} kamera…`);
-  const queue = [...ids];
-  async function worker() {
-    while (queue.length) {
-      const i = queue.shift();
-      const badge = document.querySelector(`[data-idx="${i}"] .badge`);
-      try {
-        const r = await fetch(cams[i].hls, { cache: "no-store" });
-        if (r.ok) { online++; statusCache[i] = { state: "online", t: Date.now() }; if (!players.has(i)) setBadge(badge, "ready", "READY"); }
-        else { statusCache[i] = { state: "offline", t: Date.now() }; if (!players.has(i)) setBadge(badge, "off", "OFFLINE"); }
-      } catch { statusCache[i] = { state: "offline", t: Date.now() }; if (!players.has(i)) setBadge(badge, "off", "OFFLINE"); }
-    }
-  }
-  await Promise.all(Array.from({ length: 6 }, worker));
-  setStatus(`Pengecekan selesai: ${online}/${ids.length} online.`);
-  btn.disabled = false;
 };
 
 load();

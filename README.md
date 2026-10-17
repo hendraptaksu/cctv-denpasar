@@ -2,8 +2,8 @@
 
 Program sederhana untuk melihat semua CCTV dari
 https://atcs.denpasarkota.go.id/streaming (164 kamera ATCS Denpasar)
-dan https://balisatudata.baliprov.go.id/peta-cctv (81 kamera Provinsi Bali)
-dalam satu halaman grid + peta (total 245 kamera per snapshot terakhir).
+dan https://balisatudata.baliprov.go.id/peta-cctv (91 kamera Provinsi Bali)
+dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
 
 ## Cara pakai (termudah)
 
@@ -18,16 +18,16 @@ dalam satu halaman grid + peta (total 245 kamera per snapshot terakhir).
 
 2. Ketik di kolom pencarian untuk memfilter simpang/lokasi.
 3. Klik **▶ Putar** pada kartu untuk memulai stream (HLS).
-4. Klik **⛶ Fullscreen** untuk tampilan besar, **🗺 Peta** untuk lokasi di Google Maps,
-   **🔗 Copy URL** untuk menyalin URL `.m3u8` (bisa dibuka di VLC/MPV).
-5. **📡 Cek status** menandai kamera READY/OFFLINE. **▶ Putar yang tampil**
+4. Klik **🗺 Peta** untuk lokasi di Google Maps,
+   **🔗 Copy URL** untuk menyalin URL stream (bisa dibuka di VLC/MPV).
+5. **▶ Putar yang tampil**
    memutar maks. 12 stream pertama yang tampil (membatasi beban CPU/jaringan).
 
 ## File
 
 - `index.html` — program utama (satu file, tanpa build, tanpa install).
 - `cctvs.json` — snapshot 164 kamera ATCS Denpasar; dipakai otomatis kalau API live tidak bisa diakses.
-- `cctv-bali.json` — snapshot 81 kamera Provinsi Bali (Bali Satu Data); fallback bila API live gagal.
+- `cctv-bali.json` — snapshot 91 kamera Provinsi Bali (Bali Satu Data); fallback bila API live gagal.
 - `spbu.json` — 41 titik SPBU di Denpasar + Sunset Road/Kuta (sumber: OpenStreetMap via Nominatim,
   sudah diaudit per titik via kategori OSM; 3 titik non-SPBU — Instalasi Aspal,
   depot Pedungan, kantor Jl. Sugianyar — dibuang);
@@ -78,7 +78,15 @@ dalam satu halaman grid + peta (total 245 kamera per snapshot terakhir).
   (tanpa auth, CORS `*`). Stream HLS per kamera:
   `https://transcode.baliprov.go.id/cctv/{ch_id}/index.m3u8`
   (pola yg dipakai halaman player resmi `cctv-player.html?id=...`).
-  Status API selalu "unknown" — ketersediaan dicek langsung via playlist seperti Denpasar.
+  10 baris API tanpa `ch_id` tetap dipakai: 3 player transcode (id diturunkan
+  dari `?id=` di `streaming_url`) + 7 kamera Shinobi Buleleng
+  (`shinobi.bulelengkab.go.id`, MP4 langsung yg diputar native tanpa hls.js).
+  Status API selalu "unknown" — status di UI hanya dari hasil putar nyata
+  (advisory, tidak pernah mengunci klik).
+  12 kamera pantai koordinat aslinya jatuh di laut → dikoreksi ke anchor OSM
+  (venue/pantai, bertanda 📍 posisi perkiraan; tabel `BALI_POS_FIX` di kode +
+  snapshot). 7 kamera (Pantai Jerman 5, Baruna 2) belum ada jangkar → dibiarkan
+  apa adanya.
 - ATCS Badung (`badung.atcsindonesia.info`) saat ini **tidak bisa diakses**
   (koneksi gagal total, sudah dicoba http+https; bahkan ada berita lokal soal gangguannya).
   Untungnya area Badung/Sunset Road ter-cover kamera Provinsi Bali
