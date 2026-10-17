@@ -40,7 +40,7 @@
   .row { display:flex; gap:6px; flex-wrap:wrap; }
   .row button { padding:7px 10px; font-size:13px; }
   .small { font-size:12px; color:var(--mut); word-break:break-all; margin-top:6px; }
-  #mapWrap { display:none; max-width:1400px; margin:0 auto; padding:16px; }
+  #mapWrap { display:none; max-width:1400px; margin:0 auto; padding:16px; position:relative; z-index:0; /* jebak z-index internal Leaflet (s/d 1000) di bawah sticky header */ }
   #mapWrap.show { display:block; }
   #map { height:calc(100vh - 340px); min-height:420px; border-radius:12px; border:1px solid #2a3648; }
   .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:13px; color:var(--mut); margin-top:8px; }
@@ -49,6 +49,28 @@
   #modalBox { width:min(1100px,100%); }
   #modal video { width:100%; max-height:78vh; background:#000; border-radius:8px; }
   #status { padding:0 16px 16px; max-width:1400px; margin:0 auto; color:var(--mut); font-size:13px; }
+  .titleRow { display:flex; align-items:center; gap:8px; }
+  .titleRow h1 { flex:1; }
+  #panelToggle { display:none; position:relative; white-space:nowrap; }
+  #panelToggle.hasFilter::after { content:""; position:absolute; top:5px; right:5px; width:9px; height:9px; border-radius:50%; background:var(--warn); }
+  @media (max-width:720px) {
+    .wrap { padding:10px 12px; }
+    h1 { font-size:16px; }
+    .sub { font-size:12px; }
+    #panelToggle { display:inline-flex; padding:8px 12px; font-size:13px; }
+    #panel { display:none; }
+    #panel.open { display:block; }
+    #panel .toolbar button, #panel label.chk { font-size:13px; padding:8px 10px; }
+    .tabs { margin-top:8px; }
+    .tabs button { flex:1; padding:8px 6px; font-size:13px; }
+    #grid { grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; padding:10px; }
+    #mapWrap { padding:10px; }
+    #map { height:calc(100vh - 230px); min-height:340px; }
+    #modal { padding:10px; }
+  }
+  @media (min-width:721px) {
+    #panel { display:block !important; }
+  }
   .leaflet-popup-content { color:#111; font-size:13px; }
   .leaflet-popup-content button { padding:6px 10px; font-size:13px; background:#2f81f7; color:#fff; border:0; margin-top:6px; }
   .mk-cctv, .mk-spbu { font-size:20px; line-height:1; text-align:center; }
@@ -57,8 +79,12 @@
 </head>
 <body>
 <header><div class="wrap">
-  <h1>CCTV ATCS Kota Denpasar + Peta SPBU</h1>
+  <div class="titleRow">
+    <h1>CCTV ATCS Kota Denpasar + Peta SPBU</h1>
+    <button id="panelToggle" aria-expanded="false" aria-controls="panel">☰ Filter</button>
+  </div>
   <div class="sub" id="count">Memuat…</div>
+  <div id="panel">
   <div class="toolbar">
     <input type="search" id="q" placeholder="Cari lokasi / simpang… (cth: Teuku Umar)">
     <select id="spbuSel" title="Filter berdasarkan SPBU"><option value="all">⛽ Semua SPBU</option></select>
@@ -75,6 +101,7 @@
     <button id="playVisible" class="primary">▶ Putar yang tampil</button>
     <button id="stopAll" class="danger">⏹ Stop semua</button>
     <button id="checkBtn">📡 Cek status</button>
+  </div>
   </div>
   <div class="tabs">
     <button id="tabGrid">🖼 Grid Kamera</button>
@@ -278,6 +305,8 @@ function render() {
   grid.innerHTML = "";
   for (const k of [...players.keys()]) stopOne(k);
   const { ids, sel, radius } = filtered();
+  const hasFilter = document.getElementById("q").value.trim() !== "" || !!sel || document.getElementById("nearOnly").checked;
+  document.getElementById("panelToggle").classList.toggle("hasFilter", hasFilter);
   const extra = sel ? ` • ≤ ${fmtKm(radius)} dari ${sel.name}` : "";
   document.getElementById("count").textContent = `${cams.length} kamera • ${spbus.length} SPBU • menampilkan ${ids.length}${extra}`;
   for (const idx of ids) {
@@ -465,13 +494,20 @@ function showTab(which) {
     if (!window.L) { setStatus("Peta butuh koneksi internet untuk memuat Leaflet/OpenStreetMap."); return; }
     initMap();
     syncMapToFilter();
-    setTimeout(() => { map.invalidateSize(); drawRadius(true); }, 100);
+    const fixSize = () => { try { map.invalidateSize(); } catch {} };
+    fixSize();
+    requestAnimationFrame(fixSize);
+    setTimeout(() => { fixSize(); drawRadius(true); }, 120);
   }
 }
 document.getElementById("tabGrid").onclick = () => showTab("grid");
 document.getElementById("tabMap").onclick = () => showTab("map");
 
 // --- toolbar ---
+document.getElementById("panelToggle").onclick = () => {
+  const open = document.getElementById("panel").classList.toggle("open");
+  document.getElementById("panelToggle").setAttribute("aria-expanded", String(open));
+};
 document.getElementById("q").addEventListener("input", render);
 document.getElementById("spbuSel").addEventListener("change", () => { render(); drawRadius(); });
 document.getElementById("radiusSel").addEventListener("change", () => { render(); drawRadius(); });
