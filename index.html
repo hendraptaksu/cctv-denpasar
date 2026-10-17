@@ -86,7 +86,11 @@
   .leaflet-popup-content { color:#111; font-size:13px; }
   .leaflet-popup-content button { padding:6px 10px; font-size:13px; background:#2f81f7; color:#fff; border:0; margin-top:6px; }
   .leaflet-popup-content button:disabled { background:#888; opacity:.6; cursor:not-allowed; }
-  .mk-cctv, .mk-spbu, .mk-bali { font-size:20px; line-height:1; text-align:center; position:relative; }
+  .mk-cctv, .mk-spbu, .mk-bali { font-size:20px; line-height:1; text-align:center; position:relative; filter:drop-shadow(0 1px 2px rgba(0,0,0,.75)); }
+  .mk-cluster { border-radius:50%; color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; border:3px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.55); }
+  .mk-cluster.c-small { background:#1f6feb; width:36px; height:36px; font-size:14px; }
+  .mk-cluster.c-med { background:#7c3aed; width:46px; height:46px; font-size:16px; }
+  .mk-cluster.c-big { background:#e5484d; width:56px; height:56px; font-size:18px; }
   .mk-n { position:absolute; top:-9px; right:-12px; background:var(--acc); color:#fff; font-size:11px; font-weight:700; border-radius:99px; padding:0 5px; line-height:1.6; }
   .meta .src { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; background:#2c3a55; margin-bottom:6px; }
   .meta .src.bali { background:#5b2d8e; }
@@ -586,7 +590,15 @@ function initMap() {
     maxZoom: 19, attribution: "© OpenStreetMap"
   }).addTo(map);
   cctvLayer = (L.markerClusterGroup
-    ? L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 45, disableClusteringAtZoom: 16 })
+    ? L.markerClusterGroup({
+        showCoverageOnHover: false, maxClusterRadius: 45, disableClusteringAtZoom: 16,
+        iconCreateFunction: (cluster) => {
+          const n = cluster.getChildCount();
+          const cls = n >= 100 ? "c-big" : n >= 10 ? "c-med" : "c-small";
+          const sz = n >= 100 ? 56 : n >= 10 ? 46 : 36;
+          return L.divIcon({ html: `<div class="mk-cluster ${cls}">${n}</div>`, className: "", iconSize: [sz, sz] });
+        },
+      })
     : L.layerGroup()).addTo(map);
   spbuLayer = L.layerGroup().addTo(map);
   return true;
