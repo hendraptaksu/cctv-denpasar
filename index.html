@@ -76,6 +76,7 @@
   }
   .leaflet-popup-content { color:#111; font-size:13px; }
   .leaflet-popup-content button { padding:6px 10px; font-size:13px; background:#2f81f7; color:#fff; border:0; margin-top:6px; }
+  .leaflet-popup-content button:disabled { background:#888; opacity:.6; cursor:not-allowed; }
   .mk-cctv, .mk-spbu { font-size:20px; line-height:1; text-align:center; }
   a { color:var(--acc); }
 </style>
@@ -422,7 +423,7 @@ function spbuPopupHtml(s, states) {
     const wait = st ? "" : " ⏳";
     return `• ${fmtKm(d)} — <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>${wait}`;
   }).join("<br>") : "<br><i>Belum ada CCTV dalam 1 km.</i>";
-  return `<b>⛽ ${esc(s.name)}</b><br>${esc(s.addr || "")}<br><b>CCTV terdekat (≤1 km):</b>${list}<br><button onclick="filterBySpbu('${s.id}')">Tampilkan di grid</button>`;
+  return `<b>⛽ ${esc(s.name)}</b><br>${esc(s.addr || "")}<br><b>CCTV terdekat (≤1 km):</b>${list}<br><button onclick="filterBySpbu('${s.id}')"${nearby.length ? "" : " disabled"}>Tampilkan di grid</button>`;
 }
 
 // --- peta (Leaflet) ---

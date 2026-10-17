@@ -26,7 +26,9 @@ https://atcs.denpasarkota.go.id/streaming dalam satu halaman grid
 
 - `index.html` — program utama (satu file, tanpa build, tanpa install).
 - `cctvs.json` — snapshot daftar kamera; dipakai otomatis kalau API live tidak bisa diakses.
-- `spbu.json` — 40 titik SPBU di Denpasar (sumber: OpenStreetMap via Nominatim;
+- `spbu.json` — 37 titik SPBU di Denpasar (sumber: OpenStreetMap via Nominatim,
+  sudah diaudit per titik via kategori OSM; 3 titik non-SPBU — Instalasi Aspal,
+  depot Pedungan, kantor Jl. Sugianyar — dibuang);
   nama generik diperkaya nama jalan dari alamat). Bisa diedit manual — format:
   `{"id":"SPBU-01","name":"...","lat":-8.68,"lon":115.18,"addr":"..."}`.
   Ketelitian setara data OSM; koreksi dipersilakan bila ada titik yang bukan SPBU umum.
