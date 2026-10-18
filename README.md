@@ -22,7 +22,7 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
 3. Klik **Putar** pada kartu untuk memulai stream (HLS).
 4. Klik **Peta** untuk lokasi di peta,
    **Copy URL** untuk menyalin URL stream (bisa dibuka di VLC/MPV).
-5. **Putar yang tampil**
+5. **Putar semua**
    memutar maks. 12 stream pertama yang tampil (membatasi beban CPU/jaringan).
 
 ## File

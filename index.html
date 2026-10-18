@@ -66,7 +66,9 @@
   .hRow .mk-cluster { flex:none; }
   #modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:1000; align-items:center; justify-content:center; padding:20px; }
   #modal.open { display:flex; }
-  #modalBox { width:min(1100px,100%); }
+  #modalBox { width:min(1100px,100%); color:#eef2f7; } /* backdrop modal selalu gelap → teks selalu terang */
+  #modalBox .sub { color:#9aa7bd; }
+  #modalBox a { color:#6ea8fe; }
   #modal video { width:100%; max-height:78vh; background:#000; border-radius:8px; display:block; }
   #modalFrame { width:100%; height:min(78vh,640px); min-height:300px; background:#000; border:0; border-radius:8px; display:block; }
   #modalFrame[hidden] { display:none; }
@@ -100,12 +102,13 @@
     #panelToggle { padding:8px 12px; font-size:13px; }
     #q { min-width:0; }
     #panel .toolbar button, #panel label.chk { font-size:13px; padding:8px 10px; }
-    #actionsRow { flex-wrap:wrap; }
-    #actionsRow button { flex:1 1 40%; font-size:12.5px; padding:8px 6px; }
+    #actionsRow { flex-wrap:nowrap; gap:6px; }
+    #actionsRow button { flex:1 1 0; min-width:0; font-size:12px; padding:8px 4px; white-space:nowrap; }
     .titleRow .tabs { flex-basis:100%; order:3; margin-top:8px; margin-left:0; }
     #count { flex-basis:100%; order:4; margin-top:2px; max-width:none; }
     .tabs button { flex:1; padding:8px 6px; font-size:13px; }
     #grid { grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; padding:10px; }
+    .row button[data-act=full] { display:none; } /* pemain video bawaan sudah ada tombol fullscreen */
     #mapWrap { padding:10px; }
     #map { height:calc(100vh - 230px); min-height:340px; }
     #mapHelpBtn { top:18px; right:18px; padding:8px 10px; font-size:12.5px; }
@@ -145,6 +148,11 @@
   body.coarse .mk-cctv svg, body.coarse .mk-spbu svg, body.coarse .mk-bali svg, body.coarse .mk-badung svg { width:20px; height:20px; }
   .st-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#1a7f37; margin:0 2px; vertical-align:1px; }
   .st-warn { color:var(--warn-text); font-style:normal; }
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(12px); z-index:2000;
+    display:flex; align-items:center; gap:8px; max-width:90vw; padding:10px 16px; border-radius:99px;
+    background:#1a2230; color:#eef2f7; border:1px solid #2a3648; box-shadow:0 4px 16px rgba(0,0,0,.4);
+    font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -177,8 +185,8 @@
   </div>
   </div>
   <div class="toolbar" id="actionsRow" hidden>
-    <button id="refresh"><i data-lucide="refresh-cw"></i> Refresh daftar</button>
-    <button id="playVisible" class="primary"><i data-lucide="play"></i> Putar yang tampil</button>
+    <button id="refresh"><i data-lucide="refresh-cw"></i> Refresh</button>
+    <button id="playVisible" class="primary"><i data-lucide="play"></i> Putar semua</button>
     <button id="stopAll" class="danger"><i data-lucide="square"></i> Stop semua</button>
   </div>
   <div class="sub" id="count" hidden></div>
@@ -223,7 +231,7 @@
   <h4>Ikon marker</h4>
   <div class="hRow"><span class="mk-cctv"><i data-lucide="camera"></i></span><span>CCTV ATCS Denpasar — klik untuk memutar stream.</span></div>
   <div class="hRow"><span class="mk-bali"><i data-lucide="video"></i></span><span>CCTV Provinsi Bali — klik untuk memutar stream.</span></div>
-  <div class="hRow"><span class="mk-spbu"><i data-lucide="fuel"></i></span><span>SPBU — klik untuk daftar CCTV terdekat sesuai radius filter.</span></div>
+  <div class="hRow"><span class="mk-spbu"><i data-lucide="fuel"></i></span><span>SPBU — klik untuk melihat daftar CCTV terdekat sesuai radius filter.</span></div>
   <div class="hRow"><span class="mk-badung"><i data-lucide="landmark"></i></span><span>CCTV Kab. Badung — lokasi saja, belum ada stream publik.</span></div>
   <h4>Warna cluster</h4>
   <div class="hRow"><span class="mk-cluster" style="--cb:#1f6feb;--cs:28px;--cf:13px">10</span><span>Biru = grup CCTV (Denpasar/Bali). Angka = jumlah kamera, klik untuk zoom.</span></div>
@@ -245,6 +253,8 @@
   <h4>Data saat ini</h4>
   <p id="helpStats">Memuat…</p>
 </div></div>
+
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
@@ -290,6 +300,16 @@ function setStatus(t){ document.getElementById("status").textContent = t || ""; 
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
 function camTitle(c){ return c.nama_alias || c.nama || c.nama_lokasi; }
 function refreshIcons(){ try { if (window.lucide && lucide.createIcons) lucide.createIcons(); } catch {} }
+let toastTimer = null;
+function toast(msg, icon = "check") {
+  const el = document.getElementById("toast");
+  if (!el) return;
+  el.innerHTML = `<i data-lucide="${icon}"></i> ${esc(msg)}`;
+  refreshIcons();
+  el.classList.add("show");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+}
 
 async function loadLive() {
   const r = await fetch(API, { headers: HEADERS });
@@ -589,15 +609,16 @@ function render() {
   const hasFilter = hasActiveFilter();
   document.getElementById("panelToggle").classList.toggle("hasFilter", hasFilter);
   // Baris konteks + tombol aksi hanya relevan saat sudah difilter (jaga beban stream).
-  const extra = sel ? (pinned ? ` • ${ids.length} sesuai daftar popup ${sel.name} (ubah filter SPBU untuk lepas)` : ` • ≤ ${fmtKm(radius)} dari ${sel.name}`) : "";
+  const extra = sel ? ` • ≤ ${fmtKm(radius)} dari ${sel.name}` : "";
   const cnt = document.getElementById("count");
-  cnt.hidden = !hasFilter;
-  if (hasFilter) cnt.textContent = `Menampilkan ${ids.length} kamera${extra}`;
+  // Mode pin: info jumlah + jarak sudah ada di chip kuning, baris count disembunyikan agar tidak redundan.
+  cnt.hidden = !hasFilter || pinned;
+  if (hasFilter && !pinned) cnt.textContent = `Menampilkan ${ids.length} kamera${extra}`;
   syncActionsRow();
   const chip = document.getElementById("pinChip");
   if (pinned && sel) {
     chip.hidden = false;
-    document.getElementById("pinChipTxt").textContent = `${ids.length} CCTV sesuai popup ${sel.name}`;
+    document.getElementById("pinChipTxt").textContent = `${ids.length} CCTV dekat ${sel.name} (≤ ${fmtKm(radius)})`;
   } else {
     chip.hidden = true;
   }
@@ -634,9 +655,15 @@ function render() {
     card.querySelector("[data-act=full]").onclick = () => openModal(idx);
     card.querySelector("[data-act=map]").onclick = () => { showTab("map"); focusCam(idx); };
     card.querySelector("[data-act=copy]").onclick = async (e) => {
-      await navigator.clipboard.writeText(c.hls).catch(() => {});
       const btn = e.currentTarget;
-      btn.innerHTML = '<i data-lucide="check"></i> Tersalin';
+      try {
+        await navigator.clipboard.writeText(c.hls);
+        btn.innerHTML = '<i data-lucide="check"></i> Tersalin';
+        toast("URL stream tersalin", "check");
+      } catch {
+        btn.innerHTML = '<i data-lucide="x"></i> Gagal';
+        toast("Gagal menyalin URL", "triangle-alert");
+      }
       refreshIcons();
       setTimeout(() => { btn.innerHTML = '<i data-lucide="link"></i> Copy URL'; refreshIcons(); }, 1200);
     };
