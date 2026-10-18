@@ -559,14 +559,14 @@ function playInto(idx) {
   view.querySelector(".placeholder")?.remove();
   view.querySelector("video")?.remove();
   const v = document.createElement("video");
-  v.controls = true; v.muted = true; v.autoplay = true; v.playsInline = true;
+  v.controls = false; v.muted = true; v.autoplay = true; v.playsInline = true;
   view.prepend(v);
   const badge = card.querySelector(".badge");
   players.set(idx, { video: v, hls: attachStream(v, cam.hls, {
     onFatal: () => setBadge(badge, "off", "OFFLINE"),
     onRetry: (a, m) => setBadge(badge, "", "RETRY " + a + "/" + m),
   }) });
-  v.addEventListener("playing", () => setBadge(badge, "live", "LIVE"));
+  v.addEventListener("playing", () => { v.controls = true; setBadge(badge, "live", "LIVE"); });
   v.addEventListener("error", () => setBadge(badge, "off", "OFFLINE"), true);
   card.querySelector("[data-act=play]").innerHTML = '<i data-lucide="square"></i> Stop';
   refreshIcons();
@@ -724,6 +724,7 @@ function openModal(idx) {
   else off.hidden = true;
   setModalStatus("loading", "Menghubungkan ke kamera…");
   const v = document.getElementById("modalVideo");
+  v.controls = false; // kontrol bawaan disembunyikan sampai video benar jalan (hindari spinner ganda)
   // Reset mode embed resmi (jika sebelumnya dipakai) kembali ke putar langsung.
   modalEmbedded = false;
   v.hidden = false;
@@ -732,11 +733,12 @@ function openModal(idx) {
   document.getElementById("modalEmbed").hidden = true;
   try { modalHls && modalHls.destroy(); } catch {}
   if (modalTimer) clearTimeout(modalTimer);
-  modalTimer = setTimeout(() => modalFail("Kamera tidak merespons dalam 20 detik — kemungkinan offline."), 20000);
+  modalTimer = setTimeout(() => modalFail("Kamera tidak merespons dalam 45 detik — kemungkinan offline."), 45000);
   v.onwaiting = () => { if (modalEverPlayed) setModalStatus("loading", "Buffering…"); };
   v.onstalled = () => { if (modalEverPlayed) setModalStatus("loading", "Buffering…"); };
   v.onplaying = () => {
     modalEverPlayed = true;
+    v.controls = true;
     if (modalTimer) { clearTimeout(modalTimer); modalTimer = null; }
     statusCache[idx] = { state: "online", t: Date.now() };
     setModalStatus(null);
