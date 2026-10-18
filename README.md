@@ -46,7 +46,7 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
 - Tab **Peta CCTV + SPBU**: peta Leaflet/OpenStreetMap berisi marker CCTV
   dan SPBU. Klik marker CCTV untuk memutar stream; klik marker SPBU untuk
   melihat daftar CCTV dalam 1 km + tombol "Tampilkan di grid".
-  Tombol **Cara baca peta** di pojok peta membuka penjelasan ikon marker,
+  Tombol **Petunjuk peta** di pojok peta membuka penjelasan ikon marker,
   warna cluster, sumber data, dan statistik data saat ini.
 - Filter SPBU di header: pilih SPBU tertentu + radius (0,5–3 km) untuk menampilkan
   hanya CCTV di sekitarnya (diurutkan dari terdekat, lingkaran radius digambar di peta),

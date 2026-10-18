@@ -214,7 +214,7 @@
 <div id="grid" class="hide"></div>
 <div id="mapWrap" class="show">
   <div id="map"></div>
-  <button id="mapHelpBtn" title="Cara baca peta"><i data-lucide="book-open"></i> Cara baca peta</button>
+  <button id="mapHelpBtn" title="Petunjuk peta"><i data-lucide="book-open"></i> Petunjuk peta</button>
 </div>
 <div id="status"></div>
 
@@ -240,7 +240,7 @@
 
 <div id="help"><div id="helpBox">
   <div class="hHead">
-    <div>Cara baca peta</div>
+    <div>Petunjuk peta</div>
     <button id="helpClose"><i data-lucide="x"></i> Tutup</button>
   </div>
   <h4>Ikon marker</h4>
@@ -1064,7 +1064,7 @@ document.getElementById("pinClear").onclick = () => {
   document.getElementById("nearOnly").checked = false;
   render(); drawRadius();
 };
-let stats = null; // {den, bal, spbu, badung, near, total, notes} — ditampilkan di modal "Cara baca peta"
+let stats = null; // {den, bal, spbu, badung, near, total, notes} — ditampilkan di modal "Petunjuk peta"
 function renderHelpStats() {
   const el = document.getElementById("helpStats");
   if (!el) return;
