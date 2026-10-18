@@ -15,6 +15,7 @@
   .wrap { max-width:1400px; margin:0 auto; padding:14px 16px; }
   h1 { font-size:20px; margin:0 0 2px; }
   .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+  #actionsRow[hidden], #count[hidden] { display:none; }
   input[type=search], select { padding:10px 12px; border-radius:8px; border:1px solid #2a3648; background:#0d131c; color:var(--txt); font-size:14px; }
   select { flex:1; min-width:170px; }
   label.chk { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--txt); background:var(--card2); border:1px solid #2a3648; border-radius:8px; padding:9px 12px; cursor:pointer; }
@@ -43,11 +44,23 @@
   #mapWrap { display:none; max-width:1400px; margin:0 auto; padding:16px; position:relative; z-index:0; /* jebak z-index internal Leaflet (s/d 1000) di bawah sticky header */ }
   #mapWrap.show { display:block; }
   #map { height:calc(100vh - 340px); min-height:420px; border-radius:12px; border:1px solid #2a3648; }
-  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:13px; color:var(--mut); margin-top:8px; }
+  .legend { display:flex; gap:8px 14px; flex-wrap:wrap; font-size:13px; color:var(--mut); margin-top:8px; align-items:center; }
+  .legend .dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:5px; border:2px solid #fff; vertical-align:-1px; }
+  .mapInfo { font-size:13px; color:var(--mut); margin-top:8px; background:#141d2a; border:1px solid #2a3648; border-radius:8px; padding:8px 12px; }
+  .mapInfo summary { cursor:pointer; color:var(--txt); font-weight:600; }
+  .mapInfo ul { margin:6px 0 2px; padding-left:18px; }
+  .mapInfo li { margin:2px 0; }
   #modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:1000; align-items:center; justify-content:center; padding:20px; }
   #modal.open { display:flex; }
   #modalBox { width:min(1100px,100%); }
+  #about { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1000; align-items:center; justify-content:center; padding:20px; }
+  #about.open { display:flex; }
+  #aboutBox { width:min(560px,100%); background:var(--card); border:1px solid #2a3648; border-radius:12px; padding:16px 18px; }
+  #aboutBtn { flex:none; }
   #modal video { width:100%; max-height:78vh; background:#000; border-radius:8px; display:block; }
+  #modalFrame { width:100%; height:min(78vh,640px); min-height:300px; background:#000; border:0; border-radius:8px; display:block; }
+  #modalFrame[hidden] { display:none; }
+  #modalStatusBtns button { margin:4px 2px; }
   #modalStage { position:relative; }
   #modalStatus { position:absolute; inset:0; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; background:rgba(0,0,0,.72); border-radius:8px; text-align:center; padding:16px; }
   #modalStatus[hidden] { display:none; }
@@ -89,14 +102,17 @@
   .leaflet-popup-content { color:#111; font-size:13px; }
   .leaflet-popup-content button { padding:6px 10px; font-size:13px; background:#2f81f7; color:#fff; border:0; margin-top:6px; }
   .leaflet-popup-content button:disabled { background:#888; opacity:.6; cursor:not-allowed; }
-  .mk-cctv, .mk-spbu, .mk-bali, .mk-badung { font-size:20px; line-height:1; text-align:center; position:relative;
-    /* text-shadow jauh lebih murah dari filter:drop-shadow saat peta digeser (424 marker) */
-    text-shadow: 0 1px 2px rgba(0,0,0,.85), -1px 0 0 rgba(0,0,0,.55), 1px 0 0 rgba(0,0,0,.55), 0 -1px 0 rgba(0,0,0,.55), 0 1px 0 rgba(0,0,0,.55); }
+  .mk-cctv, .mk-spbu, .mk-bali, .mk-badung { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:16px; line-height:1; border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.5); position:relative; }
+  .mk-cctv, .mk-bali { background:#1f6feb; }
+  .mk-spbu { background:#E30613; }
+  .mk-badung { background:#64748b; font-size:14px; }
   .mk-cluster { border-radius:50%; color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; border:3px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.5);
     background:var(--cb,#1f6feb); width:var(--cs,36px); height:var(--cs,36px); font-size:var(--cf,14px); }
   .mk-n { position:absolute; top:-9px; right:-12px; background:var(--acc); color:#fff; font-size:11px; font-weight:700; border-radius:99px; padding:0 5px; line-height:1.6; }
   /* Layar kecil / sentuh: ikon & cluster lebih besar agar mudah disentuh, popup muat di layar. */
-  body.coarse .mk-cctv, body.coarse .mk-spbu, body.coarse .mk-bali, body.coarse .mk-badung { font-size:27px; }
+  body.coarse .mk-cctv, body.coarse .mk-spbu, body.coarse .mk-bali, body.coarse .mk-badung { width:38px; height:38px; font-size:20px; }
+  body.coarse .mk-badung { font-size:17px; }
   body.coarse .mk-n { font-size:13px; padding:1px 7px; top:-11px; right:-15px; }
   body.coarse .leaflet-popup-content { font-size:14px; line-height:1.7; max-width:72vw; }
   body.coarse .leaflet-popup-content button { padding:10px 16px; font-size:14px; }
@@ -104,6 +120,18 @@
   .meta .src { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; background:#2c3a55; margin-bottom:6px; }
   .meta .src.bali { background:#5b2d8e; }
   a { color:var(--acc); }
+  /* Lucide: ikon SVG konsisten di dark/light, ikut warna teks (currentColor). */
+  .lucide { width:1.05em; height:1.05em; vertical-align:-0.18em; flex:none; }
+  button .lucide, .tabs button .lucide, .row button .lucide, summary .lucide, .legend .lucide { vertical-align:-0.22em; }
+  button { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .row button { display:inline-flex; align-items:center; gap:5px; }
+  #modalLive { display:inline-flex; align-items:center; gap:5px; }
+  #modalLive .lucide { width:11px; height:11px; }
+  .mk-cctv, .mk-spbu, .mk-bali, .mk-badung { color:#fff; }
+  .mk-cctv svg, .mk-spbu svg, .mk-bali svg, .mk-badung svg { width:16px; height:16px; }
+  body.coarse .mk-cctv svg, body.coarse .mk-spbu svg, body.coarse .mk-bali svg, body.coarse .mk-badung svg { width:20px; height:20px; }
+  .st-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#1a7f37; margin:0 2px; vertical-align:1px; }
+  .st-warn { color:#999; font-style:normal; }
 </style>
 </head>
 <body>
@@ -112,43 +140,46 @@
     <input type="search" id="q" placeholder="Cari lokasi CCTV… (cth: Teuku Umar)">
     <div class="sub" id="count">Memuat…</div>
     <div class="tabs">
-      <button id="tabGrid">🖼 Grid Kamera</button>
-      <button id="tabMap" class="on">🗺 Peta CCTV + SPBU</button>
+      <button id="tabGrid"><i data-lucide="layout-grid"></i> Grid Kamera</button>
+      <button id="tabMap" class="on"><i data-lucide="map"></i> Peta CCTV + SPBU</button>
     </div>
-    <button id="panelToggle" aria-expanded="false" aria-controls="panel">☰ Filter</button>
+    <button id="aboutBtn" title="Tentang aplikasi"><i data-lucide="info"></i></button>
+    <button id="panelToggle" aria-expanded="false" aria-controls="panel"><i data-lucide="menu"></i> Filter</button>
   </div>
   <div id="panel">
   <div class="toolbar">
     <select id="srcSel" title="Sumber CCTV">
-      <option value="all">📡 Semua sumber</option>
-      <option value="denpasar">📷 ATCS Denpasar</option>
-      <option value="bali">📹 Bali Provinsi</option>
+      <option value="all">Semua sumber</option>
+      <option value="denpasar">ATCS Denpasar</option>
+      <option value="bali">Bali Provinsi</option>
     </select>
-    <select id="spbuSel" title="Filter berdasarkan SPBU"><option value="all">⛽ Semua SPBU</option></select>
+    <select id="spbuSel" title="Filter berdasarkan SPBU"><option value="all">Semua SPBU</option></select>
     <select id="radiusSel" title="Radius dari SPBU">
-      <option value="0.5">≤ 0,5 km dari SPBU</option>
-      <option value="1" selected>≤ 1 km dari SPBU</option>
-      <option value="2">≤ 2 km dari SPBU</option>
-      <option value="3">≤ 3 km dari SPBU</option>
+      <option value="0.25" selected>≤ 250 m dari SPBU</option>
+      <option value="0.5">≤ 500 m dari SPBU</option>
+      <option value="0.75">≤ 750 m dari SPBU</option>
+      <option value="1">≤ 1 km dari SPBU</option>
     </select>
     <label class="chk"><input type="checkbox" id="nearOnly"> CCTV dekat SPBU saja</label>
   </div>
   </div>
-  <div class="toolbar" id="actionsRow">
-    <button id="refresh">⟳ Refresh daftar</button>
-    <button id="playVisible" class="primary">▶ Putar yang tampil</button>
-    <button id="stopAll" class="danger">⏹ Stop semua</button>
+  <div class="toolbar" id="actionsRow" hidden>
+    <button id="refresh"><i data-lucide="refresh-cw"></i> Refresh daftar</button>
+    <button id="playVisible" class="primary"><i data-lucide="play"></i> Putar yang tampil</button>
+    <button id="stopAll" class="danger"><i data-lucide="square"></i> Stop semua</button>
   </div>
+  <div class="sub" id="count" hidden></div>
   <div id="pinChip" hidden>
     <span id="pinChipTxt"></span>
-    <button id="pinClear" title="Lepas pin, tampilkan semua">✕ Lepas</button>
+    <button id="pinClear" title="Lepas pin, tampilkan semua"><i data-lucide="x"></i> Lepas</button>
   </div>
 </div></header>
 
 <div id="grid" class="hide"></div>
 <div id="mapWrap" class="show">
   <div id="map"></div>
-  <div class="legend"><span>📷 CCTV ATCS Denpasar</span><span>📹 CCTV Bali Provinsi</span><span>⛽ SPBU (data OpenStreetMap — klik marker untuk CCTV terdekat)</span></div>
+  <div class="legend"><span><i class="dot" style="background:#1f6feb"></i><i data-lucide="cctv"></i> CCTV Denpasar / Bali Prov — lingkaran biru, angka = jumlah kamera (klik untuk zoom)</span><span><i class="dot" style="background:#E30613"></i><i data-lucide="fuel"></i> SPBU — merah, klik untuk CCTV terdekat</span><span><i class="dot" style="background:#64748b"></i><i data-lucide="landmark"></i> Badung — abu-abu, lokasi saja (tanpa stream)</span></div>
+  <details class="mapInfo"><summary><i data-lucide="info"></i> Cara pakai peta</summary><ul><li>Lingkaran berwarna = grup; angka di dalamnya = jumlah titik. Klik untuk memperbesar.</li><li>Klik marker merah untuk daftar CCTV terdekat sesuai radius filter, lalu <b>Tampilkan di grid</b>.</li><li>Lingkaran oranye di peta = radius aktif dari SPBU terpilih.</li></ul></details>
 </div>
 <div id="status"></div>
 
@@ -156,22 +187,32 @@
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
     <div style="min-width:0"><div id="modalTitle" style="font-weight:700"></div><div id="modalSub" class="sub"></div></div>
     <div style="display:flex;gap:8px;align-items:center;flex:none">
-      <a id="modalOfficial" href="#" target="_blank" rel="noopener" title="Buka pemutar resmi milik penyedia di tab baru">Pemutar resmi ↗</a>
-      <button id="modalClose">✕ Tutup</button>
+      <a id="modalOfficial" href="#" target="_blank" rel="noopener" title="Buka pemutar resmi milik penyedia di tab baru">Pemutar resmi <i data-lucide="external-link"></i></a>
+      <button id="modalClose"><i data-lucide="x"></i> Tutup</button>
     </div>
   </div>
   <div id="modalStage">
     <video id="modalVideo" controls autoplay muted playsinline></video>
+    <iframe id="modalFrame" hidden title="Pemutar resmi penyedia (status video tidak terbaca aplikasi)" allow="autoplay; fullscreen" allowfullscreen></iframe>
     <div id="modalStatus">
       <div class="spin"></div>
       <div id="modalStatusTxt">Menghubungkan…</div>
-      <div id="modalStatusBtns" hidden><button id="modalRetry" class="primary">🔄 Coba lagi</button></div>
+      <div id="modalStatusBtns" hidden><button id="modalRetry" class="primary"><i data-lucide="refresh-cw"></i> Coba lagi</button> <button id="modalEmbed"><i data-lucide="play"></i> Coba pemutar resmi di sini</button></div>
     </div>
-    <div id="modalLive" hidden>● LIVE</div>
+    <div id="modalLive" hidden><i data-lucide="radio"></i> LIVE</div>
   </div>
 </div></div>
 
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.10"></script>
+<div id="about"><div id="aboutBox">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
+    <div style="font-weight:700">Tentang aplikasi</div>
+    <button id="aboutClose"><i data-lucide="x"></i> Tutup</button>
+  </div>
+  <div id="aboutBody" class="sub" style="line-height:1.7"></div>
+</div></div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
@@ -213,6 +254,7 @@ function fmtKm(km){ return km < 1 ? Math.round(km*1000)+" m" : km.toFixed(1).rep
 function setStatus(t){ document.getElementById("status").textContent = t || ""; }
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
 function camTitle(c){ return c.nama_alias || c.nama || c.nama_lokasi; }
+function refreshIcons(){ try { if (window.lucide && lucide.createIcons) lucide.createIcons(); } catch {} }
 
 async function loadLive() {
   const r = await fetch(API, { headers: HEADERS });
@@ -290,10 +332,10 @@ function computeNearest() {
 
 function fillSpbuSelect() {
   const sel = document.getElementById("spbuSel");
-  sel.innerHTML = '<option value="all">⛽ Semua SPBU</option>';
+  sel.innerHTML = '<option value="all">Semua SPBU</option>';
   [...spbus].sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
     const o = document.createElement("option");
-    o.value = s.id; o.textContent = `⛽ ${s.name}`;
+    o.value = s.id; o.textContent = `${s.name}`;
     sel.appendChild(o);
   });
 }
@@ -464,9 +506,10 @@ function playInto(idx) {
     onFatal: () => setBadge(badge, "off", "OFFLINE"),
     onRetry: (a, m) => setBadge(badge, "", "RETRY " + a + "/" + m),
   }) });
-  v.addEventListener("playing", () => setBadge(badge, "live", "● LIVE"));
+  v.addEventListener("playing", () => setBadge(badge, "live", "LIVE"));
   v.addEventListener("error", () => setBadge(badge, "off", "OFFLINE"), true);
-  card.querySelector("[data-act=play]").textContent = "⏹ Stop";
+  card.querySelector("[data-act=play]").innerHTML = '<i data-lucide="square"></i> Stop';
+  refreshIcons();
 }
 function stopOne(idx) {
   const p = players.get(idx);
@@ -474,7 +517,7 @@ function stopOne(idx) {
   const card = document.querySelector(`[data-idx="${idx}"]`);
   if (card && !card.querySelector("video")) {
     const b = card.querySelector("[data-act=play]");
-    if (b) b.textContent = "▶ Putar";
+    if (b) { b.innerHTML = '<i data-lucide="play"></i> Putar'; refreshIcons(); }
   }
 }
 function setBadge(el, cls, txt) { if (el) { el.className = "badge " + cls; el.textContent = txt; } }
@@ -483,26 +526,41 @@ function restorePlaceholder(idx) {
   if (!card || card.querySelector(".placeholder") || card.querySelector("video")) return;
   const d = document.createElement("div");
   d.className = "placeholder";
-  d.innerHTML = `<div style="font-size:34px">📷</div><div>Klik <b>Putar</b> untuk streaming</div>`;
+  d.innerHTML = `<div><i data-lucide="camera" style="width:34px;height:34px"></i></div><div>Klik <b>Putar</b> untuk streaming</div>`;
   card.querySelector(".view").appendChild(d);
+  refreshIcons();
 }
 
 // --- grid ---
+function hasActiveFilter() {
+  const sel = spbus.find(s => s.id === document.getElementById("spbuSel").value);
+  return document.getElementById("q").value.trim() !== "" || !!sel || document.getElementById("nearOnly").checked || document.getElementById("srcSel").value !== "all";
+}
+function isGridTab() {
+  return !document.getElementById("grid").classList.contains("hide");
+}
+// Tombol aksi (refresh/putar/stop) eksklusif milik tab grid: di peta tak ada
+// konteks "yang tampil", jadi disembunyikan agar tidak membingungkan.
+function syncActionsRow() {
+  document.getElementById("actionsRow").hidden = !(hasActiveFilter() && isGridTab());
+}
 function render() {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
   for (const k of [...players.keys()]) stopOne(k);
   const { ids, sel, radius, pinned } = filtered();
-  const hasFilter = document.getElementById("q").value.trim() !== "" || !!sel || document.getElementById("nearOnly").checked || document.getElementById("srcSel").value !== "all";
+  const hasFilter = hasActiveFilter();
   document.getElementById("panelToggle").classList.toggle("hasFilter", hasFilter);
-  const nDen = cams.filter(c => (c.source || "denpasar") !== "bali").length;
-  const extra = sel ? (pinned ? ` • 📌 ${ids.length} sesuai daftar popup ${sel.name} (ubah filter SPBU untuk lepas)` : ` • ≤ ${fmtKm(radius)} dari ${sel.name}`) : "";
-  document.getElementById("count").textContent = `${cams.length} kamera (${nDen} Denpasar + ${cams.length - nDen} Bali) • ${spbus.length} SPBU • menampilkan ${ids.length}${extra}`;
-  document.getElementById("count").title = document.getElementById("count").textContent;
+  // Baris konteks + tombol aksi hanya relevan saat sudah difilter (jaga beban stream).
+  const extra = sel ? (pinned ? ` • ${ids.length} sesuai daftar popup ${sel.name} (ubah filter SPBU untuk lepas)` : ` • ≤ ${fmtKm(radius)} dari ${sel.name}`) : "";
+  const cnt = document.getElementById("count");
+  cnt.hidden = !hasFilter;
+  if (hasFilter) cnt.textContent = `Menampilkan ${ids.length} kamera${extra}`;
+  syncActionsRow();
   const chip = document.getElementById("pinChip");
   if (pinned && sel) {
     chip.hidden = false;
-    document.getElementById("pinChipTxt").textContent = `📌 ${ids.length} CCTV sesuai popup ${sel.name}`;
+    document.getElementById("pinChipTxt").textContent = `${ids.length} CCTV sesuai popup ${sel.name}`;
   } else {
     chip.hidden = true;
   }
@@ -516,20 +574,20 @@ function render() {
       <div class="view">
         <span class="badge">IDLE</span>
         <div class="placeholder">
-          <div style="font-size:34px">📷</div>
+          <div><i data-lucide="camera" style="width:34px;height:34px"></i></div>
           <div>Klik <b>Putar</b> untuk streaming</div>
         </div>
       </div>
       <div class="meta">
-        <span class="src${c.source === "bali" ? " bali" : ""}">${c.source === "bali" ? "📹 BALI PROV" : "📷 ATCS DPS"}</span>
+        <span class="src${c.source === "bali" ? " bali" : ""}">${c.source === "bali" ? "BALI PROV" : "ATCS DPS"}</span>
         <h3>${esc(camTitle(c))}</h3>
         <p class="loc" title="${esc((c.nama_lokasi || "") + " — " + (c.ket_lokasi || ""))}">${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}</p>
-        ${sName && isFinite(d) ? `<p class="spbu">⛽ ${fmtKm(d)} ke ${esc(sName)}</p>` : ""}
+        ${sName && isFinite(d) ? `<p class="spbu"><i data-lucide="fuel"></i> ${fmtKm(d)} ke ${esc(sName)}</p>` : ""}
         <div class="row">
-          <button data-act="play" class="primary">▶ Putar</button>
-          <button data-act="full">⛶ Fullscreen</button>
-          <button data-act="map">🗺 Peta</button>
-          <button data-act="copy" title="Salin URL HLS (klik untuk menyalin)">🔗 Copy URL</button>
+          <button data-act="play" class="primary"><i data-lucide="play"></i> Putar</button>
+          <button data-act="full"><i data-lucide="maximize"></i> Fullscreen</button>
+          <button data-act="map"><i data-lucide="map"></i> Peta</button>
+          <button data-act="copy" title="Salin URL HLS (klik untuk menyalin)"><i data-lucide="link"></i> Copy URL</button>
         </div>
       </div>`;
     card.querySelector("[data-act=play]").onclick = () => {
@@ -540,16 +598,19 @@ function render() {
     card.querySelector("[data-act=map]").onclick = () => { showTab("map"); focusCam(idx); };
     card.querySelector("[data-act=copy]").onclick = async (e) => {
       await navigator.clipboard.writeText(c.hls).catch(() => {});
-      e.target.textContent = "✓ Tersalin";
-      setTimeout(() => e.target.textContent = "🔗 Copy URL", 1200);
+      const btn = e.currentTarget;
+      btn.innerHTML = '<i data-lucide="check"></i> Tersalin';
+      refreshIcons();
+      setTimeout(() => { btn.innerHTML = '<i data-lucide="link"></i> Copy URL'; refreshIcons(); }, 1200);
     };
     grid.appendChild(card);
   }
+  refreshIcons();
   syncMapToFilter(); // marker peta selalu ikut filter header
 }
 
 // --- modal ---
-let modalHls = null, modalIdx = null, modalTimer = null, modalEverPlayed = false;
+let modalHls = null, modalIdx = null, modalTimer = null, modalEverPlayed = false, modalEmbedded = false;
 function setModalStatus(mode, txt) {
   const st = document.getElementById("modalStatus");
   if (!mode) { st.hidden = true; return; }
@@ -563,15 +624,18 @@ function modalFail(msg) {
   if (modalIdx != null) statusCache[modalIdx] = { state: "offline", t: Date.now() };
   document.getElementById("modalLive").hidden = true;
   setModalStatus("error", msg || "Gagal memuat stream — kamera kemungkinan offline.");
+  // Tawarkan jalur resmi hanya untuk Bali (satu-satunya sumber yg halamannya bisa di-embed).
+  const c = modalIdx != null ? cams[modalIdx] : null;
+  document.getElementById("modalEmbed").hidden = !(c && c.source === "bali" && c.stream_page);
 }
 function openModal(idx) {
   const c = cams[idx];
   modalIdx = idx; modalEverPlayed = false;
   document.getElementById("modalTitle").textContent = camTitle(c);
   document.getElementById("modalSub").textContent =
-    (c.source === "bali" ? "📹 Bali Prov" : "📷 ATCS Denpasar") + " • " +
+    (c.source === "bali" ? "Bali Prov" : "ATCS Denpasar") + " • " +
     [c.nama_lokasi, c.ket_lokasi].filter(Boolean).join(" — ") +
-    (c.nearSpbu && isFinite(c.nearDist) ? ` • ⛽ ${fmtKm(c.nearDist)} ke ${c.nearSpbu.name}` : "");
+    (c.nearSpbu && isFinite(c.nearDist) ? ` • ${fmtKm(c.nearDist)} ke ${c.nearSpbu.name}` : "");
   document.getElementById("modal").classList.add("open");
   document.getElementById("modalLive").hidden = true;
   const off = document.getElementById("modalOfficial");
@@ -579,6 +643,12 @@ function openModal(idx) {
   else off.hidden = true;
   setModalStatus("loading", "Menghubungkan ke kamera…");
   const v = document.getElementById("modalVideo");
+  // Reset mode embed resmi (jika sebelumnya dipakai) kembali ke putar langsung.
+  modalEmbedded = false;
+  v.hidden = false;
+  const fr0 = document.getElementById("modalFrame");
+  fr0.hidden = true; fr0.removeAttribute("src");
+  document.getElementById("modalEmbed").hidden = true;
   try { modalHls && modalHls.destroy(); } catch {}
   if (modalTimer) clearTimeout(modalTimer);
   modalTimer = setTimeout(() => modalFail("Kamera tidak merespons dalam 20 detik — kemungkinan offline."), 20000);
@@ -596,6 +666,7 @@ function openModal(idx) {
     onFatal: () => modalFail(),
     onRetry: (a, m) => setModalStatus("loading", `Menghubungkan ulang (${a}/${m})…`),
   });
+  refreshIcons();
 }
 window.openModal = openModal; // dipakai popup peta
 function closeModal() {
@@ -604,34 +675,63 @@ function closeModal() {
   const v = document.getElementById("modalVideo");
   v.onwaiting = v.onstalled = v.onplaying = v.onerror = null;
   try { modalHls && modalHls.destroy(); } catch {}
-  modalHls = null; modalIdx = null; modalEverPlayed = false;
+  modalHls = null; modalIdx = null; modalEverPlayed = false; modalEmbedded = false;
   v.removeAttribute("src"); v.load();
+  v.hidden = false;
+  const fr = document.getElementById("modalFrame");
+  fr.hidden = true; fr.removeAttribute("src");
   setModalStatus(null);
   document.getElementById("modalLive").hidden = true;
 }
 document.getElementById("modalRetry").onclick = () => { if (modalIdx != null) openModal(modalIdx); };
+// Gagal langsung → sematkan pemutar resmi di dalam modal (jalur HLS sama,
+// hls.js milik penyedia; status video tak terbaca lintas-origin).
+document.getElementById("modalEmbed").onclick = () => {
+  if (modalIdx == null || modalEmbedded) return;
+  const c = cams[modalIdx];
+  if (!(c && c.stream_page)) return;
+  if (modalTimer) { clearTimeout(modalTimer); modalTimer = null; }
+  try { modalHls && modalHls.destroy(); } catch {}
+  modalHls = null;
+  modalEmbedded = true;
+  const v = document.getElementById("modalVideo");
+  try { v.pause(); } catch {}
+  v.hidden = true;
+  const fr = document.getElementById("modalFrame");
+  fr.src = c.stream_page;
+  fr.hidden = false;
+  setModalStatus(null);
+};
 document.getElementById("modalClose").onclick = closeModal;
 document.getElementById("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closeModal(); document.getElementById("about").classList.remove("open"); } });
 
 // --- status stream: HANYA dari hasil putar nyata (player), bukan tebakan fetch.
 // "online" = pernah terpancar (event playing); "offline" = pernah gagal fatal.
 // Keduanya advisory: semua kamera SELALU bisa diklik/dicoba ulang.
 const statusCache = {}; // idx -> {state:"online"|"offline", t:timestamp}
-function spbuNearby(s, maxKm = 1, maxN = 8) {
+function spbuNearby(s, maxKm, maxN = 8) {
+  if (maxKm == null) {
+    const el = document.getElementById("radiusSel");
+    maxKm = el ? parseFloat(el.value) : 1;
+    if (!isFinite(maxKm)) maxKm = 1;
+  }
   return cams.map((c, idx) => ({ c, idx, d: hav(c.lat, c.lon, s.lat, s.lon) }))
     .filter(({ d }) => d <= maxKm).sort((a,b) => a.d - b.d).slice(0, maxN);
 }
 function spbuPopupHtml(s) {
-  const nearby = spbuNearby(s);
+  const el = document.getElementById("radiusSel");
+  let r = el ? parseFloat(el.value) : 1;
+  if (!isFinite(r)) r = 1;
+  const nearby = spbuNearby(s, r);
   const rank = idx => { const h = statusCache[idx]; return !h ? 1 : h.state === "online" ? 0 : 2; };
   nearby.sort((a,b) => (rank(a.idx) - rank(b.idx)) || (a.d - b.d));
   const list = nearby.length ? "<br>" + nearby.map(({ c, idx, d }) => {
     const st = statusCache[idx] && statusCache[idx].state;
-    const flag = st === "online" ? ` <span style="color:#1a7f37">●</span>` : st === "offline" ? ` <span style="color:#999">(⚠ pernah gagal — klik untuk coba lagi)</span>` : "";
+    const flag = st === "online" ? ` <span class="st-dot" title="pernah terpancar"></span>` : st === "offline" ? ` <span class="st-warn">(pernah gagal — klik untuk coba lagi)</span>` : "";
     return `• ${fmtKm(d)} — <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>${flag}`;
-  }).join("<br>") : "<br><i>Belum ada CCTV dalam 1 km.</i>";
-  return `<b>⛽ ${esc(s.name)}</b><br>${esc(s.addr || "")}<br><b>CCTV terdekat (≤1 km):</b>${list}<br><button onclick="filterBySpbu('${s.id}')"${nearby.length ? "" : " disabled"}>Tampilkan di grid</button>`;
+  }).join("<br>") : `<br><i>Belum ada CCTV dalam ${fmtKm(r)}.</i>`;
+  return `<b><i data-lucide="fuel"></i> ${esc(s.name)}</b><br>${esc(s.addr || "")}<br><b>CCTV terdekat (≤${fmtKm(r)}):</b>${list}<br><button onclick="filterBySpbu('${s.id}')"${nearby.length ? "" : " disabled"}>Tampilkan di grid</button>`;
 }
 
 // --- peta (Leaflet) ---
@@ -667,15 +767,11 @@ function initMap() {
   badungLayer = makeClusterLayer("badung");
   return true;
 }
-// Satu gaya cluster untuk semua layer; warna beda per jenis, ukuran ikut mode coarse.
-// cctv: biru-ungu-merah • spbu: teal • badung: abu (lokasi saja, tanpa stream).
+// Satu warna per jenis agar intuitif; ukuran cluster ikut jumlah, bukan warna.
+// cctv: biru • spbu: merah Pertamina • badung: abu (lokasi saja, tanpa stream).
 function makeClusterLayer(kind) {
   if (!(L.markerClusterGroup)) return L.layerGroup();
-  const PAL = {
-    cctv: ["#1f6feb", "#7c3aed", "#e5484d"],
-    spbu: ["#0d9488", "#0f766e", "#115e59"],
-    badung: ["#64748b", "#475569", "#334155"],
-  }[kind] || ["#1f6feb", "#7c3aed", "#e5484d"];
+  const COLOR = { cctv: "#1f6feb", spbu: "#E30613", badung: "#64748b" }[kind] || "#1f6feb";
   return L.markerClusterGroup({
     showCoverageOnHover: false, maxClusterRadius: coarseNow ? 60 : 45, disableClusteringAtZoom: 16,
     iconCreateFunction: (cluster) => {
@@ -683,33 +779,32 @@ function makeClusterLayer(kind) {
       const t = n >= 100 ? 2 : n >= 10 ? 1 : 0;
       const sz = (coarseNow ? [46, 58, 70] : [36, 46, 56])[t];
       const fs = (coarseNow ? [17, 19, 21] : [14, 16, 18])[t];
-      return L.divIcon({ html: `<div class="mk-cluster" style="--cb:${PAL[t]};--cs:${sz}px;--cf:${fs}px">${n}</div>`, className: "", iconSize: [sz, sz] });
+      return L.divIcon({ html: `<div class="mk-cluster" style="--cb:${COLOR};--cs:${sz}px;--cf:${fs}px">${n}</div>`, className: "", iconSize: [sz, sz] });
     },
   }).addTo(map);
 }
 // Popup satu titik: 1 kamera -> detail penuh; >1 kamera -> daftar pilihan.
-// Semua SELALU bisa diklik; penanda ●/⚠ hanya info dari hasil putar sebelumnya.
+// Semua SELALU bisa diklik; penanda dot hanya info dari hasil putar sebelumnya.
 function groupPopupHtml(g, list) {
   const flagFor = (idx) => {
     const h = statusCache[idx];
     if (!h) return "";
-    if (h.state === "online") return ` <span style="color:#1a7f37">●</span>`;
-    return ` <span style="color:#999">(⚠ pernah gagal — klik untuk coba lagi)</span>`;
+    if (h.state === "online") return ` <span class="st-dot" title="pernah terpancar"></span>`;
+    return ` <span class="st-warn">(pernah gagal — klik untuk coba lagi)</span>`;
   };
   if (list.length === 1) {
     const idx = list[0], c = cams[idx];
     const near = c.nearSpbu && isFinite(c.nearDist)
-      ? `<br>⛽ Terdekat: ${esc(c.nearSpbu.name)} (${fmtKm(c.nearDist)})` : "";
-    const approx = c.pos_perkiraan ? `<br>📍 <i>posisi perkiraan (koordinat asli di laut)</i>` : "";
+      ? `<br><i data-lucide="fuel"></i> Terdekat: ${esc(c.nearSpbu.name)} (${fmtKm(c.nearDist)})` : "";
+    const approx = c.pos_perkiraan ? `<br><i data-lucide="map-pin"></i> <i>posisi perkiraan (koordinat asli di laut)</i>` : "";
     const flag = statusCache[idx] && statusCache[idx].state === "offline"
-      ? `<br><span style="color:#999"><i>⚠ percobaan sebelumnya gagal — silakan coba lagi.</i></span>` : "";
-    return `<b>${esc(camTitle(c))}</b><br>${c.source === "bali" ? "📹 CCTV Provinsi Bali" : "📷 CCTV ATCS Denpasar"}<br>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}${near}${approx}${flag}<br><button onclick="openModal(${idx})">▶ Putar CCTV</button>`;
+      ? `<br><span class="st-warn"><i>percobaan sebelumnya gagal — silakan coba lagi.</i></span>` : "";
+    return `<b>${esc(camTitle(c))}</b><br>${c.source === "bali" ? "CCTV Provinsi Bali" : "CCTV ATCS Denpasar"}<br>${esc(c.nama_lokasi || "")} — ${esc(c.ket_lokasi || "")}${near}${approx}${flag}<br><button onclick="openModal(${idx})"><i data-lucide="play"></i> Putar CCTV</button>`;
   }
   const rows = list.map(idx => {
     const c = cams[idx];
-    const tag = c.source === "bali" ? "📹" : "📷";
-    const approx = c.pos_perkiraan ? " 📍" : "";
-    return `<div>${tag} <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>${approx}${flagFor(idx)}</div>`;
+    const approx = c.pos_perkiraan ? ' <i data-lucide="map-pin"></i>' : "";
+    return `<div><i data-lucide="${c.source === "bali" ? "video" : "camera"}"></i> <a href="#" onclick="openModal(${idx});return false">${esc(camTitle(c))}</a>${approx}${flagFor(idx)}</div>`;
   }).join("");
   return `<b>${list.length} kamera di titik ini</b><br>${esc(g.label)}<br>${rows}`;
 }
@@ -730,13 +825,13 @@ function ensureMarkersBuilt() {
     }
     byKey[key].idxs.push(idx);
   });
-  const MK = coarseNow ? 36 : 24, AH = MK / 2; // ukuran target sentuh ikon
+  const MK = coarseNow ? 38 : 30, AH = MK / 2; // samakan dgn CSS .mk-* agar anchor di tengah
   const iconFor = (multi, bali) => L.divIcon({
     className: "", iconSize: [MK,MK], iconAnchor: [AH,AH],
-    html: `<div class="${bali ? "mk-bali" : "mk-cctv"}">${bali ? "📹" : "📷"}${multi > 1 ? `<span class="mk-n">${multi}</span>` : ""}</div>`,
+    html: `<div class="${bali ? "mk-bali" : "mk-cctv"}"><i data-lucide="${bali ? "video" : "camera"}"></i>${multi > 1 ? `<span class="mk-n">${multi}</span>` : ""}</div>`,
   });
-  const spbuIcon = L.divIcon({ className: "", html: '<div class="mk-spbu">⛽</div>', iconSize: [MK,MK], iconAnchor: [AH,AH] });
-  const badungIcon = L.divIcon({ className: "", html: '<div class="mk-badung">🏛️</div>', iconSize: [MK,MK], iconAnchor: [AH,AH] });
+  const spbuIcon = L.divIcon({ className: "", html: '<div class="mk-spbu"><i data-lucide="fuel"></i></div>', iconSize: [MK,MK], iconAnchor: [AH,AH] });
+  const badungIcon = L.divIcon({ className: "", html: '<div class="mk-badung"><i data-lucide="landmark"></i></div>', iconSize: [MK,MK], iconAnchor: [AH,AH] });
   locGroups.forEach(g => {
     const bali = g.idxs.every(i => cams[i].source === "bali");
     const m = L.marker([g.lat, g.lon], { icon: iconFor(g.idxs.length, bali) });
@@ -746,6 +841,7 @@ function ensureMarkersBuilt() {
       let list = g.idxs.filter(i => set.has(i));
       if (!list.length) list = g.idxs;
       m.getPopup().setContent(groupPopupHtml(g, list));
+      refreshIcons();
     });
     groupMarkerByKey[g.key] = m;
   });
@@ -754,16 +850,18 @@ function ensureMarkersBuilt() {
     m.bindPopup(spbuPopupHtml(s));
     m.on("popupopen", () => {
       m.getPopup().setContent(spbuPopupHtml(s));
+      refreshIcons();
     });
     spbuMarkerById[s.id] = m;
   });
   Object.keys(badungMarkerById).forEach(k => delete badungMarkerById[k]);
   badung.forEach(b => {
     const m = L.marker([b.lat, b.lon], { icon: badungIcon });
-    m.bindPopup(`<b>🏛️ ${esc(b.name)}</b><br>CCTV Kabupaten Badung (Peta Smart City)<br><i>Belum ada stream publik — titik lokasi saja.</i>`);
+    m.bindPopup(`<b><i data-lucide="landmark"></i> ${esc(b.name)}</b><br>CCTV Kabupaten Badung (Peta Smart City)<br><i>Belum ada stream publik — titik lokasi saja.</i>`);
     badungMarkerById[b.id] = m;
   });
   markersDirty = false;
+  refreshIcons();
 }
 // Terapkan filter header yang SAMA ke marker peta.
 function syncMapToFilter() {
@@ -779,12 +877,13 @@ function syncMapToFilter() {
   badungLayer.clearLayers();
   badung.forEach(b => { const m = badungMarkerById[b.id]; if (m) badungLayer.addLayer(m); });
   drawRadius(false);
+  refreshIcons();
 }
 window.filterBySpbu = function(id) {
   const s = spbus.find(x => x.id === id);
   document.getElementById("spbuSel").value = id;
   document.getElementById("nearOnly").checked = false;
-  // kunci daftar PERSIS seperti di popup (8 terdekat ≤1 km), bukan radius dropdown
+  // kunci daftar PERSIS seperti di popup (8 terdekat ≤ radius dropdown)
   spbuPin = s ? { id, ids: spbuNearby(s).map(({ idx }) => idx) } : null;
   showTab("grid"); render();
   document.getElementById("grid").scrollIntoView();
@@ -806,7 +905,7 @@ function drawRadius(zoom = true) {
   if (sel) {
     const radius = parseFloat(document.getElementById("radiusSel").value);
     radiusCircle = L.circle([sel.lat, sel.lon], { radius: radius * 1000, color: "orange", fillOpacity: 0.08 }).addTo(map);
-    if (zoom) map.setView([sel.lat, sel.lon], radius <= 1 ? 14 : 13);
+    if (zoom) map.setView([sel.lat, sel.lon], radius <= 0.3 ? 16 : radius <= 0.6 ? 15 : 14);
   }
 }
 function showTab(which) {
@@ -814,6 +913,10 @@ function showTab(which) {
   document.getElementById("tabMap").classList.toggle("on", which === "map");
   document.getElementById("grid").classList.toggle("hide", which !== "grid");
   document.getElementById("mapWrap").classList.toggle("show", which === "map");
+  // auto-hide panel filter tiap ganti tab agar tidak menutupi konten
+  document.getElementById("panel").classList.remove("open");
+  document.getElementById("panelToggle").setAttribute("aria-expanded", "false");
+  syncActionsRow();
   if (which === "map") {
     if (!window.L) { setStatus("Peta butuh koneksi internet untuk memuat Leaflet/OpenStreetMap."); return; }
     initMap();
@@ -852,6 +955,18 @@ document.getElementById("pinClear").onclick = () => {
   document.getElementById("nearOnly").checked = false;
   render(); drawRadius();
 };
+document.getElementById("aboutBtn").onclick = () => {
+  const nDen = cams.filter(c => (c.source || "denpasar") !== "bali").length;
+  document.getElementById("aboutBody").innerHTML =
+    `Penampil CCTV ATCS Denpasar + Bali Provinsi dalam satu halaman grid + peta.<br><br>` +
+    `${nDen} ATCS Denpasar • ${cams.length - nDen} Bali Provinsi • ${spbus.length} SPBU • ${badung.length} titik Badung (lokasi saja).<br><br>` +
+    `Sumber: atcs.denpasarkota.go.id, balisatudata.baliprov.go.id, Peta Smart City Badung, OpenStreetMap.<br>` +
+    `Semua kamera selalu bisa diklik; dot hijau = pernah terpancar, teks abu = percobaan sebelumnya gagal.`;
+  document.getElementById("about").classList.add("open");
+  refreshIcons();
+};
+document.getElementById("aboutClose").onclick = () => document.getElementById("about").classList.remove("open");
+document.getElementById("about").addEventListener("click", e => { if (e.target.id === "about") document.getElementById("about").classList.remove("open"); });
 document.getElementById("panelToggle").onclick = () => {
   const open = document.getElementById("panel").classList.toggle("open");
   document.getElementById("panelToggle").setAttribute("aria-expanded", String(open));
@@ -876,6 +991,7 @@ document.getElementById("playVisible").onclick = () => {
 };
 
 load();
+refreshIcons();
 </script>
 </body>
 </html>

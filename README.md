@@ -17,10 +17,10 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
    ```
 
 2. Ketik di kolom pencarian untuk memfilter simpang/lokasi.
-3. Klik **▶ Putar** pada kartu untuk memulai stream (HLS).
-4. Klik **🗺 Peta** untuk lokasi di Google Maps,
-   **🔗 Copy URL** untuk menyalin URL stream (bisa dibuka di VLC/MPV).
-5. **▶ Putar yang tampil**
+3. Klik **Putar** pada kartu untuk memulai stream (HLS).
+4. Klik **Peta** untuk lokasi di peta,
+   **Copy URL** untuk menyalin URL stream (bisa dibuka di VLC/MPV).
+5. **Putar yang tampil**
    memutar maks. 12 stream pertama yang tampil (membatasi beban CPU/jaringan).
 
 ## File
@@ -29,7 +29,7 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
 - `cctvs.json` — snapshot 164 kamera ATCS Denpasar; dipakai otomatis kalau API live tidak bisa diakses.
 - `cctv-bali.json` — snapshot 91 kamera Provinsi Bali (Bali Satu Data); fallback bila API live gagal.
 - `cctv-badung.json` — 128 titik CCTV Kab. Badung (Peta Smart City, dari sumber kontribusi);
-  lokasi saja tanpa stream publik → tampil sebagai marker 🏛️ di peta, tidak ikut grid/playback.
+  lokasi saja tanpa stream publik → tampil sebagai marker abu-abu di peta, tidak ikut grid/playback.
 - `spbu.json` — 41 titik SPBU di Denpasar + Sunset Road/Kuta (sumber: OpenStreetMap via Nominatim,
   sudah diaudit per titik via kategori OSM; 3 titik non-SPBU — Instalasi Aspal,
   depot Pedungan, kantor Jl. Sugianyar — dibuang);
@@ -39,14 +39,14 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
 
 ## Fitur peta & filter SPBU
 
-- Tab **🗺 Peta CCTV + SPBU**: peta Leaflet/OpenStreetMap berisi marker 📷 (CCTV)
-  dan ⛽ (SPBU). Klik marker CCTV untuk memutar stream; klik marker SPBU untuk
+- Tab **Peta CCTV + SPBU**: peta Leaflet/OpenStreetMap berisi marker CCTV
+  dan SPBU. Klik marker CCTV untuk memutar stream; klik marker SPBU untuk
   melihat daftar CCTV dalam 1 km + tombol "Tampilkan di grid".
 - Filter SPBU di header: pilih SPBU tertentu + radius (0,5–3 km) untuk menampilkan
   hanya CCTV di sekitarnya (diurutkan dari terdekat, lingkaran radius digambar di peta),
   atau centang **CCTV dekat SPBU saja** untuk semua SPBU sekaligus.
-- Setiap kartu grid menampilkan jarak ke SPBU terdekat, mis. "⛽ 0,6 km ke SPBU ...".
-- Tombol **🗺 Peta** pada kartu melompat ke peta dan fokus ke kamera itu.
+- Setiap kartu grid menampilkan jarak ke SPBU terdekat, mis. "0,6 km ke SPBU ...".
+- Tombol **Peta** pada kartu melompat ke peta dan fokus ke kamera itu.
   Regenerasi:
 
   ```sh
@@ -86,13 +86,13 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
   Status API selalu "unknown" — status di UI hanya dari hasil putar nyata
   (advisory, tidak pernah mengunci klik).
   12 kamera pantai koordinat aslinya jatuh di laut → dikoreksi ke anchor OSM
-  (venue/pantai, bertanda 📍 posisi perkiraan; tabel `BALI_POS_FIX` di kode +
+  (venue/pantai, bertanda posisi perkiraan; tabel `BALI_POS_FIX` di kode +
   snapshot). 7 kamera (Pantai Jerman 5, Baruna 2) belum ada jangkar → dibiarkan
   apa adanya.
 - ATCS Badung (`badung.atcsindonesia.info`) saat ini **tidak bisa diakses**
   (koneksi gagal total, sudah dicoba http+https; bahkan ada berita lokal soal gangguannya).
   Sebagai gantinya 128 titik CCTV Kab. Badung (Peta Smart City: Kuta, Legian,
-  Seminyak, Canggu, Dalung, Cemagi, RSUD Kapal) tampil sebagai marker 🏛️
+  Seminyak, Canggu, Dalung, Cemagi, RSUD Kapal) tampil sebagai marker
   lokasi-saja di peta — belum ada stream publiknya.
   Untungnya area Badung/Sunset Road ter-cover kamera Provinsi Bali
   (20 kamera ≤3 km dari Sunset Road, terdekat 0,7 km di Legian).
