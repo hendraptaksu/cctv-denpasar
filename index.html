@@ -719,9 +719,9 @@ function setModalStatus(mode, txt) {
     document.getElementById("modalRetry").hidden = false;
     document.getElementById("modalEmbed").hidden = !canEmbed;
   } else {
-    // Loading awal kamera Bali: tawarkan pemutar resmi langsung,
-    // user tak perlu menunggu retry gagal. Buffering tengah-putar tidak (sudah jalan).
-    btns.hidden = !(canEmbed && !modalEverPlayed);
+    // Semua fase loading kamera Bali (awal, retry, buffering): tawarkan pemutar
+    // resmi langsung, user tak perlu menunggu retry gagal.
+    btns.hidden = !canEmbed;
     document.getElementById("modalRetry").hidden = true;
     document.getElementById("modalEmbed").hidden = !canEmbed;
   }
