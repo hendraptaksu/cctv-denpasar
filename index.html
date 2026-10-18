@@ -481,7 +481,8 @@ function filtered() {
 // --- video ---
 function attachStream(video, hlsUrl, cbs) {
   // cbs: {onFatal(data), onRetry(attempt, max)} — retry otomatis spt situs aslinya
-  const MAX_RETRY = 3, RETRY_DELAY = 2000;
+  const MAX_RETRY = 3, RETRY_DELAYS = [2000, 4000, 8000]; // backoff: rapat di awal, longgar belakangan
+  const retryDelay = a => RETRY_DELAYS[a - 1] ?? 8000;
   const onFatal = cbs && cbs.onFatal, onRetry = cbs && cbs.onRetry;
   // Media langsung non-HLS (mis. MP4 Shinobi Buleleng): putar native + retry,
   // jangan dilewatkan ke hls.js.
@@ -492,7 +493,7 @@ function attachStream(video, hlsUrl, cbs) {
       attempt++;
       if (attempt <= MAX_RETRY) {
         onRetry && onRetry(attempt, MAX_RETRY);
-        timer = setTimeout(() => { if (!dead) { video.src = hlsUrl; video.play().catch(() => {}); } }, RETRY_DELAY);
+        timer = setTimeout(() => { if (!dead) { video.src = hlsUrl; video.play().catch(() => {}); } }, retryDelay(attempt));
       } else {
         onFatal && onFatal();
       }
@@ -509,7 +510,7 @@ function attachStream(video, hlsUrl, cbs) {
       attempt++;
       if (attempt <= MAX_RETRY) {
         onRetry && onRetry(attempt, MAX_RETRY);
-        timer = setTimeout(() => { if (!dead) { video.src = hlsUrl; video.play().catch(() => {}); } }, RETRY_DELAY);
+        timer = setTimeout(() => { if (!dead) { video.src = hlsUrl; video.play().catch(() => {}); } }, retryDelay(attempt));
       } else {
         onFatal && onFatal();
       }
@@ -542,7 +543,7 @@ function attachStream(video, hlsUrl, cbs) {
       if (attempt <= MAX_RETRY) {
         onRetry && onRetry(attempt, MAX_RETRY);
         cleanupHls();
-        timer = setTimeout(start, RETRY_DELAY);
+        timer = setTimeout(start, retryDelay(attempt));
       } else {
         cleanupHls();
         onFatal && onFatal(data);
