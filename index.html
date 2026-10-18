@@ -966,6 +966,10 @@ window.filterBySpbu = function(id) {
   const s = spbus.find(x => x.id === id);
   document.getElementById("spbuSel").value = id;
   document.getElementById("nearOnly").checked = false;
+  // Bersihkan filter lain agar daftar pin persis seperti di popup:
+  // sisa pencarian teks / sumber sebelumnya tidak boleh mengiris hasil.
+  document.getElementById("q").value = "";
+  document.getElementById("srcSel").value = "all";
   // kunci daftar PERSIS seperti di popup (8 terdekat ≤ radius dropdown)
   spbuPin = s ? { id, ids: spbuNearby(s).map(({ idx }) => idx) } : null;
   showTab("grid"); render();
