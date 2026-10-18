@@ -17,6 +17,8 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
    ```
 
 2. Ketik di kolom pencarian untuk memfilter simpang/lokasi.
+   Tombol matahari/bulan di header mengganti tema terang/gelap
+   (pilihan tersimpan di `localStorage`, default mengikuti sistem).
 3. Klik **Putar** pada kartu untuk memulai stream (HLS).
 4. Klik **Peta** untuk lokasi di peta,
    **Copy URL** untuk menyalin URL stream (bisa dibuka di VLC/MPV).
@@ -42,6 +44,8 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
 - Tab **Peta CCTV + SPBU**: peta Leaflet/OpenStreetMap berisi marker CCTV
   dan SPBU. Klik marker CCTV untuk memutar stream; klik marker SPBU untuk
   melihat daftar CCTV dalam 1 km + tombol "Tampilkan di grid".
+  Tombol **Cara baca peta** di pojok peta membuka penjelasan ikon marker,
+  warna cluster, sumber data, dan statistik data saat ini.
 - Filter SPBU di header: pilih SPBU tertentu + radius (0,5–3 km) untuk menampilkan
   hanya CCTV di sekitarnya (diurutkan dari terdekat, lingkaran radius digambar di peta),
   atau centang **CCTV dekat SPBU saja** untuk semua SPBU sekaligus.

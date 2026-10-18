@@ -4,59 +4,69 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CCTV ATCS Denpasar — Viewer + Peta SPBU</title>
+<script>try{var _t=localStorage.getItem("cctv-theme");if(_t!=="light"&&_t!=="dark"){var _m=window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches;_t=_m?"light":"dark";}document.documentElement.dataset.theme=_t;}catch(e){document.documentElement.dataset.theme="dark";}</script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <style>
-  :root { --bg:#0f141b; --card:#1a2230; --card2:#222d42; --txt:#eef2f7; --mut:#9aa7bd; --acc:#2f81f7; --ok:#2ea043; --bad:#f85149; --warn:#d29922; }
+  html { color-scheme:dark; }
+  html[data-theme="light"] { color-scheme:light; }
+  :root, html[data-theme="dark"] { --bg:#0f141b; --card:#1a2230; --card2:#222d42; --txt:#eef2f7; --mut:#9aa7bd; --acc:#2f81f7; --ok:#2ea043; --bad:#f85149; --warn:#d29922;
+    --border:#2a3648; --head-bg:rgba(15,20,27,.95); --head-solid:#0f141b; --input-bg:#0d131c; --hover:#2c3a55; --danger-bg:#5a1f1f; --src-bg:#2c3a55; --spbu:#ffb86b; --badge-bg:#333; --warn-text:#999; }
+  html[data-theme="light"] { --bg:#eef1f6; --card:#ffffff; --card2:#e7ecf4; --txt:#16202e; --mut:#5b6b82; --acc:#1f6feb; --ok:#1a7f37; --bad:#d1242f; --warn:#9a6700;
+    --border:#d3dae4; --head-bg:rgba(255,255,255,.93); --head-solid:#ffffff; --input-bg:#ffffff; --hover:#dbe3ef; --danger-bg:#fbe3e3; --src-bg:#d9e4f5; --spbu:#b35400; --badge-bg:#8a94a3; --warn-text:#7a5c00; }
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--txt); }
-  header { position:sticky; top:0; z-index:20; background:rgba(15,20,27,.95); backdrop-filter:blur(8px); border-bottom:1px solid #2a3648; }
+  header { position:sticky; top:0; z-index:20; background:var(--head-bg); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); }
   .wrap { max-width:1400px; margin:0 auto; padding:14px 16px; }
   h1 { font-size:20px; margin:0 0 2px; }
   .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center; }
   #actionsRow[hidden], #count[hidden] { display:none; }
-  input[type=search], select { padding:10px 12px; border-radius:8px; border:1px solid #2a3648; background:#0d131c; color:var(--txt); font-size:14px; }
+  input[type=search], select { padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--input-bg); color:var(--txt); font-size:14px; }
   select { flex:1; min-width:170px; }
-  label.chk { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--txt); background:var(--card2); border:1px solid #2a3648; border-radius:8px; padding:9px 12px; cursor:pointer; }
-  button { padding:10px 14px; border-radius:8px; border:1px solid #2a3648; background:var(--card2); color:var(--txt); cursor:pointer; font-size:14px; }
-  button:hover { background:#2c3a55; }
-  button.primary { background:var(--acc); border-color:var(--acc); }
-  button.danger { background:#5a1f1f; border-color:var(--bad); }
+  label.chk { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--txt); background:var(--card2); border:1px solid var(--border); border-radius:8px; padding:9px 12px; cursor:pointer; }
+  button { padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--card2); color:var(--txt); cursor:pointer; font-size:14px; }
+  button:hover { background:var(--hover); }
+  button.primary, .tabs button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+  button.danger { background:var(--danger-bg); border-color:var(--bad); }
   button:disabled { opacity:.5; cursor:not-allowed; }
   .tabs { display:flex; gap:6px; flex-shrink:0; margin-left:auto; }
-  .tabs button.on { background:var(--acc); border-color:var(--acc); }
   #grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:14px; padding:16px; max-width:1400px; margin:0 auto; }
   #grid.hide { display:none; }
-  .card { background:var(--card); border:1px solid #2a3648; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
   .view { position:relative; aspect-ratio:16/9; background:#000; }
   .view video, .view iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
   .placeholder { position:absolute; inset:0; display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; color:var(--mut); padding:12px; text-align:center; }
-  .badge { position:absolute; top:8px; left:8px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px; background:#333; z-index:2; }
+  .badge { position:absolute; top:8px; left:8px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px; background:var(--badge-bg); z-index:2; }
+  .badge.live, #modalLive { color:#fff; }
   .badge.live { background:var(--bad); } .badge.ready { background:var(--ok); } .badge.off { background:var(--warn); color:#000; }
   .meta { padding:10px 12px; }
   .meta h3 { margin:0 0 2px; font-size:15px; }
   .meta p { margin:0 0 4px; font-size:12.5px; color:var(--mut); }
-  .meta .spbu { font-size:12.5px; color:#ffb86b; margin:0 0 8px; }
+  .meta .spbu { font-size:12.5px; color:var(--spbu); margin:0 0 8px; }
   .row { display:flex; gap:6px; flex-wrap:wrap; }
   .row button { padding:7px 10px; font-size:13px; }
   .small { font-size:12px; color:var(--mut); word-break:break-all; margin-top:6px; }
   #mapWrap { display:none; max-width:1400px; margin:0 auto; padding:16px; position:relative; z-index:0; /* jebak z-index internal Leaflet (s/d 1000) di bawah sticky header */ }
   #mapWrap.show { display:block; }
-  #map { height:calc(100vh - 340px); min-height:420px; border-radius:12px; border:1px solid #2a3648; }
-  .legend { display:flex; gap:8px 14px; flex-wrap:wrap; font-size:13px; color:var(--mut); margin-top:8px; align-items:center; }
-  .legend .dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:5px; border:2px solid #fff; vertical-align:-1px; }
-  .mapInfo { font-size:13px; color:var(--mut); margin-top:8px; background:#141d2a; border:1px solid #2a3648; border-radius:8px; padding:8px 12px; }
-  .mapInfo summary { cursor:pointer; color:var(--txt); font-weight:600; }
-  .mapInfo ul { margin:6px 0 2px; padding-left:18px; }
-  .mapInfo li { margin:2px 0; }
+  #map { height:calc(100vh - 340px); min-height:420px; border-radius:12px; border:1px solid var(--border); }
+  #mapHelpBtn { position:absolute; top:26px; right:26px; z-index:500; box-shadow:0 2px 8px rgba(0,0,0,.45); }
+  #help { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1000; align-items:center; justify-content:center; padding:20px; }
+  #help.open { display:flex; }
+  #helpBox { width:min(560px,100%); max-height:85vh; overflow-y:auto; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+  .hHead { display:flex; justify-content:space-between; align-items:center; gap:8px; position:sticky; top:-16px; background:var(--card); padding:10px 0; z-index:2; }
+  .hHead > div { font-weight:700; }
+  #helpBox h4 { margin:14px 0 6px; font-size:13.5px; }
+  #helpBox h4:first-of-type { margin-top:10px; }
+  #helpBox p, #helpBox li { font-size:13px; color:var(--mut); line-height:1.65; }
+  #helpBox ul { margin:4px 0; padding-left:18px; }
+  .hRow { display:flex; align-items:center; gap:10px; margin:7px 0; font-size:13px; color:var(--mut); }
+  .hRow .mk-cctv, .hRow .mk-bali, .hRow .mk-spbu, .hRow .mk-badung { width:26px; height:26px; flex:none; }
+  .hRow .mk-cctv svg, .hRow .mk-bali svg, .hRow .mk-spbu svg, .hRow .mk-badung svg { width:14px; height:14px; }
+  .hRow .mk-cluster { flex:none; }
   #modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:1000; align-items:center; justify-content:center; padding:20px; }
   #modal.open { display:flex; }
   #modalBox { width:min(1100px,100%); }
-  #about { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1000; align-items:center; justify-content:center; padding:20px; }
-  #about.open { display:flex; }
-  #aboutBox { width:min(560px,100%); background:var(--card); border:1px solid #2a3648; border-radius:12px; padding:16px 18px; }
-  #aboutBtn { flex:none; }
   #modal video { width:100%; max-height:78vh; background:#000; border-radius:8px; display:block; }
   #modalFrame { width:100%; height:min(78vh,640px); min-height:300px; background:#000; border:0; border-radius:8px; display:block; }
   #modalFrame[hidden] { display:none; }
@@ -76,6 +86,7 @@
   #q { flex:1 1 auto; min-width:170px; max-width:440px; }
   .sub { color:var(--mut); font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:330px; flex-shrink:0; }
   #panelToggle { display:inline-flex; position:relative; white-space:nowrap; flex-shrink:0; }
+  #themeBtn { flex:none; }
   #panel:not(.open) { display:none; }
   .row button { padding:6px 9px; font-size:12.5px; }
   .meta .loc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -97,6 +108,8 @@
     #grid { grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; padding:10px; }
     #mapWrap { padding:10px; }
     #map { height:calc(100vh - 230px); min-height:340px; }
+    #mapHelpBtn { top:18px; right:18px; padding:8px 10px; font-size:12.5px; }
+    #help { padding:10px; }
     #modal { padding:10px; }
   }
   .leaflet-popup-content { color:#111; font-size:13px; }
@@ -116,13 +129,13 @@
   body.coarse .mk-n { font-size:13px; padding:1px 7px; top:-11px; right:-15px; }
   body.coarse .leaflet-popup-content { font-size:14px; line-height:1.7; max-width:72vw; }
   body.coarse .leaflet-popup-content button { padding:10px 16px; font-size:14px; }
-  body.coarse header { backdrop-filter:none; background:#0f141b; } /* blur header benda mati yg ikut repaint saat pan */
-  .meta .src { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; background:#2c3a55; margin-bottom:6px; }
-  .meta .src.bali { background:#5b2d8e; }
+  body.coarse header { backdrop-filter:none; background:var(--head-solid); } /* blur header benda mati yg ikut repaint saat pan */
+  .meta .src { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; background:var(--src-bg); color:var(--txt); margin-bottom:6px; }
+  .meta .src.bali { background:var(--acc); color:#fff; }
   a { color:var(--acc); }
   /* Lucide: ikon SVG konsisten di dark/light, ikut warna teks (currentColor). */
   .lucide { width:1.05em; height:1.05em; vertical-align:-0.18em; flex:none; }
-  button .lucide, .tabs button .lucide, .row button .lucide, summary .lucide, .legend .lucide { vertical-align:-0.22em; }
+  button .lucide, .tabs button .lucide, .row button .lucide, summary .lucide, .hRow .lucide { vertical-align:-0.22em; }
   button { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
   .row button { display:inline-flex; align-items:center; gap:5px; }
   #modalLive { display:inline-flex; align-items:center; gap:5px; }
@@ -131,7 +144,7 @@
   .mk-cctv svg, .mk-spbu svg, .mk-bali svg, .mk-badung svg { width:16px; height:16px; }
   body.coarse .mk-cctv svg, body.coarse .mk-spbu svg, body.coarse .mk-bali svg, body.coarse .mk-badung svg { width:20px; height:20px; }
   .st-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#1a7f37; margin:0 2px; vertical-align:1px; }
-  .st-warn { color:#999; font-style:normal; }
+  .st-warn { color:var(--warn-text); font-style:normal; }
 </style>
 </head>
 <body>
@@ -143,7 +156,7 @@
       <button id="tabGrid"><i data-lucide="layout-grid"></i> Grid Kamera</button>
       <button id="tabMap" class="on"><i data-lucide="map"></i> Peta CCTV + SPBU</button>
     </div>
-    <button id="aboutBtn" title="Tentang aplikasi"><i data-lucide="info"></i></button>
+    <button id="themeBtn" title="Ganti tema"><i data-lucide="sun"></i></button>
     <button id="panelToggle" aria-expanded="false" aria-controls="panel"><i data-lucide="menu"></i> Filter</button>
   </div>
   <div id="panel">
@@ -178,8 +191,7 @@
 <div id="grid" class="hide"></div>
 <div id="mapWrap" class="show">
   <div id="map"></div>
-  <div class="legend"><span><i class="dot" style="background:#1f6feb"></i><i data-lucide="cctv"></i> CCTV Denpasar / Bali Prov — lingkaran biru, angka = jumlah kamera (klik untuk zoom)</span><span><i class="dot" style="background:#E30613"></i><i data-lucide="fuel"></i> SPBU — merah, klik untuk CCTV terdekat</span><span><i class="dot" style="background:#64748b"></i><i data-lucide="landmark"></i> Badung — abu-abu, lokasi saja (tanpa stream)</span></div>
-  <details class="mapInfo"><summary><i data-lucide="info"></i> Cara pakai peta</summary><ul><li>Lingkaran berwarna = grup; angka di dalamnya = jumlah titik. Klik untuk memperbesar.</li><li>Klik marker merah untuk daftar CCTV terdekat sesuai radius filter, lalu <b>Tampilkan di grid</b>.</li><li>Lingkaran oranye di peta = radius aktif dari SPBU terpilih.</li></ul></details>
+  <button id="mapHelpBtn" title="Cara baca peta"><i data-lucide="book-open"></i> Cara baca peta</button>
 </div>
 <div id="status"></div>
 
@@ -203,12 +215,35 @@
   </div>
 </div></div>
 
-<div id="about"><div id="aboutBox">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
-    <div style="font-weight:700">Tentang aplikasi</div>
-    <button id="aboutClose"><i data-lucide="x"></i> Tutup</button>
+<div id="help"><div id="helpBox">
+  <div class="hHead">
+    <div>Cara baca peta</div>
+    <button id="helpClose"><i data-lucide="x"></i> Tutup</button>
   </div>
-  <div id="aboutBody" class="sub" style="line-height:1.7"></div>
+  <h4>Ikon marker</h4>
+  <div class="hRow"><span class="mk-cctv"><i data-lucide="camera"></i></span><span>CCTV ATCS Denpasar — klik untuk memutar stream.</span></div>
+  <div class="hRow"><span class="mk-bali"><i data-lucide="video"></i></span><span>CCTV Provinsi Bali — klik untuk memutar stream.</span></div>
+  <div class="hRow"><span class="mk-spbu"><i data-lucide="fuel"></i></span><span>SPBU — klik untuk daftar CCTV terdekat sesuai radius filter.</span></div>
+  <div class="hRow"><span class="mk-badung"><i data-lucide="landmark"></i></span><span>CCTV Kab. Badung — lokasi saja, belum ada stream publik.</span></div>
+  <h4>Warna cluster</h4>
+  <div class="hRow"><span class="mk-cluster" style="--cb:#1f6feb;--cs:28px;--cf:13px">10</span><span>Biru = grup CCTV (Denpasar/Bali). Angka = jumlah kamera, klik untuk zoom.</span></div>
+  <div class="hRow"><span class="mk-cluster" style="--cb:#E30613;--cs:28px;--cf:13px">3</span><span>Merah = grup SPBU.</span></div>
+  <div class="hRow"><span class="mk-cluster" style="--cb:#64748b;--cs:28px;--cf:13px">5</span><span>Abu-abu = grup titik Badung.</span></div>
+  <h4>Cara pakai</h4>
+  <ul>
+    <li>Kamera se-titik dikelompokkan dalam satu marker; popup berisi daftar pilihan.</li>
+    <li>Klik marker merah lalu <b>Tampilkan di grid</b> untuk daftar CCTV terdekat SPBU itu.</li>
+    <li>Lingkaran oranye di peta = radius aktif dari SPBU terpilih.</li>
+  </ul>
+  <h4>Status putar</h4>
+  <ul>
+    <li>Semua kamera selalu bisa diklik; penanda hanya info dari hasil putar sebelumnya.</li>
+    <li><span class="st-dot"></span> hijau = pernah terpancar; teks abu = percobaan sebelumnya gagal, silakan coba lagi.</li>
+  </ul>
+  <h4>Sumber data</h4>
+  <p>atcs.denpasarkota.go.id, balisatudata.baliprov.go.id, Peta Smart City Badung, OpenStreetMap. Ikon <i data-lucide="map-pin"></i> = posisi perkiraan (koordinat asli jatuh di laut).</p>
+  <h4>Data saat ini</h4>
+  <p id="helpStats">Memuat…</p>
 </div></div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
@@ -368,7 +403,9 @@ async function load() {
   computeNearest();
   fillSpbuSelect();
   const n = cams.filter(c => c.nearDist <= 1).length;
-  setStatus(`Live: ${den.length} ATCS Denpasar + ${bal.length} Bali Prov. ${spbus.length} SPBU, ${badung.length} titik Badung, ${n}/${cams.length} kamera dalam 1 km SPBU.` + (notes.length ? " (" + notes.join("; ") + ")" : ""));
+  stats = { den: den.length, bal: bal.length, spbu: spbus.length, badung: badung.length, near: n, total: cams.length, notes };
+  setStatus("");
+  renderHelpStats();
   markersDirty = true;
   spbuPin = null; // indeks kamera bisa bergeser setelah reload
   render();
@@ -704,7 +741,7 @@ document.getElementById("modalEmbed").onclick = () => {
 };
 document.getElementById("modalClose").onclick = closeModal;
 document.getElementById("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape") { closeModal(); document.getElementById("about").classList.remove("open"); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closeModal(); document.getElementById("help").classList.remove("open"); } });
 
 // --- status stream: HANYA dari hasil putar nyata (player), bukan tebakan fetch.
 // "online" = pernah terpancar (event playing); "offline" = pernah gagal fatal.
@@ -955,18 +992,24 @@ document.getElementById("pinClear").onclick = () => {
   document.getElementById("nearOnly").checked = false;
   render(); drawRadius();
 };
-document.getElementById("aboutBtn").onclick = () => {
-  const nDen = cams.filter(c => (c.source || "denpasar") !== "bali").length;
-  document.getElementById("aboutBody").innerHTML =
-    `Penampil CCTV ATCS Denpasar + Bali Provinsi dalam satu halaman grid + peta.<br><br>` +
-    `${nDen} ATCS Denpasar • ${cams.length - nDen} Bali Provinsi • ${spbus.length} SPBU • ${badung.length} titik Badung (lokasi saja).<br><br>` +
-    `Sumber: atcs.denpasarkota.go.id, balisatudata.baliprov.go.id, Peta Smart City Badung, OpenStreetMap.<br>` +
-    `Semua kamera selalu bisa diklik; dot hijau = pernah terpancar, teks abu = percobaan sebelumnya gagal.`;
-  document.getElementById("about").classList.add("open");
+let stats = null; // {den, bal, spbu, badung, near, total, notes} — ditampilkan di modal "Cara baca peta"
+function renderHelpStats() {
+  const el = document.getElementById("helpStats");
+  if (!el) return;
+  if (!stats) { el.textContent = "Memuat…"; return; }
+  el.innerHTML =
+    `${stats.den} CCTV ATCS Denpasar + ${stats.bal} CCTV Provinsi Bali = <b>${stats.total} kamera</b>.<br>` +
+    `${stats.spbu} SPBU, ${stats.badung} titik Badung (lokasi saja).<br>` +
+    `${stats.near}/${stats.total} kamera dalam 1 km SPBU.` +
+    (stats.notes.length ? `<br><i>(${esc(stats.notes.join("; "))})</i>` : "");
+}
+document.getElementById("mapHelpBtn").onclick = () => {
+  renderHelpStats();
+  document.getElementById("help").classList.add("open");
   refreshIcons();
 };
-document.getElementById("aboutClose").onclick = () => document.getElementById("about").classList.remove("open");
-document.getElementById("about").addEventListener("click", e => { if (e.target.id === "about") document.getElementById("about").classList.remove("open"); });
+document.getElementById("helpClose").onclick = () => document.getElementById("help").classList.remove("open");
+document.getElementById("help").addEventListener("click", e => { if (e.target.id === "help") document.getElementById("help").classList.remove("open"); });
 document.getElementById("panelToggle").onclick = () => {
   const open = document.getElementById("panel").classList.toggle("open");
   document.getElementById("panelToggle").setAttribute("aria-expanded", String(open));
@@ -989,6 +1032,24 @@ document.getElementById("playVisible").onclick = () => {
   showTab("grid");
   list.forEach(playInto);
 };
+
+// --- tema terang/gelap (preferensi di localStorage) ---
+function syncThemeBtn() {
+  const light = document.documentElement.dataset.theme === "light";
+  const b = document.getElementById("themeBtn");
+  if (b) {
+    b.innerHTML = `<i data-lucide="${light ? "moon" : "sun"}"></i>`;
+    b.title = light ? "Ganti ke mode gelap" : "Ganti ke mode terang";
+  }
+  refreshIcons();
+}
+document.getElementById("themeBtn").onclick = () => {
+  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("cctv-theme", next); } catch {}
+  syncThemeBtn();
+};
+syncThemeBtn();
 
 load();
 refreshIcons();
