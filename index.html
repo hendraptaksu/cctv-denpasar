@@ -80,10 +80,11 @@
   #modalFrame[hidden] { display:none; }
   #modalStatusBtns { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
   #modalStatusBtns[hidden] { display:none; }
+  #modalStatusBtns [hidden] { display:none; } /* button{display:inline-flex} menimpa UA [hidden] */
   #modalStage { position:relative; }
   #modalStatus { position:absolute; inset:0; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; background:rgba(0,0,0,.72); border-radius:8px; text-align:center; padding:16px; }
   #modalStatus[hidden] { display:none; }
-  #modalStatus .spin { width:44px; height:44px; border:4px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:mspin .9s linear infinite; }
+  #modalStatus .spin { width:44px; height:44px; flex:none; border:4px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:mspin .9s linear infinite; }
   #modalStatus.err .spin { display:none; }
   #modalStatusTxt { font-size:15px; }
   #modalLive { position:absolute; top:10px; left:10px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px; background:var(--bad); }
@@ -709,16 +710,27 @@ function setModalStatus(mode, txt) {
   st.hidden = false;
   st.classList.toggle("err", mode === "error");
   document.getElementById("modalStatusTxt").textContent = txt || "";
-  document.getElementById("modalStatusBtns").hidden = mode !== "error";
+  // Jalur resmi hanya untuk Bali (satu-satunya sumber yg halamannya bisa di-embed).
+  const c = modalIdx != null ? cams[modalIdx] : null;
+  const canEmbed = !!(c && c.source === "bali" && c.stream_page) && !modalEmbedded;
+  const btns = document.getElementById("modalStatusBtns");
+  if (mode === "error") {
+    btns.hidden = false;
+    document.getElementById("modalRetry").hidden = false;
+    document.getElementById("modalEmbed").hidden = !canEmbed;
+  } else {
+    // Loading awal kamera Bali: tawarkan pemutar resmi langsung,
+    // user tak perlu menunggu retry gagal. Buffering tengah-putar tidak (sudah jalan).
+    btns.hidden = !(canEmbed && !modalEverPlayed);
+    document.getElementById("modalRetry").hidden = true;
+    document.getElementById("modalEmbed").hidden = !canEmbed;
+  }
 }
 function modalFail(msg) {
   if (modalTimer) { clearTimeout(modalTimer); modalTimer = null; }
   if (modalIdx != null) statusCache[modalIdx] = { state: "offline", t: Date.now() };
   document.getElementById("modalLive").hidden = true;
   setModalStatus("error", msg || "Gagal memuat stream — kamera kemungkinan offline.");
-  // Tawarkan jalur resmi hanya untuk Bali (satu-satunya sumber yg halamannya bisa di-embed).
-  const c = modalIdx != null ? cams[modalIdx] : null;
-  document.getElementById("modalEmbed").hidden = !(c && c.source === "bali" && c.stream_page);
 }
 function openModal(idx) {
   const c = cams[idx];
@@ -733,15 +745,14 @@ function openModal(idx) {
   const off = document.getElementById("modalOfficial");
   if (c.stream_page) { off.hidden = false; off.href = c.stream_page; }
   else off.hidden = true;
-  setModalStatus("loading", "Menghubungkan ke kamera…");
-  const v = document.getElementById("modalVideo");
-  v.controls = false; // kontrol bawaan disembunyikan sampai video benar jalan (hindari spinner ganda)
   // Reset mode embed resmi (jika sebelumnya dipakai) kembali ke putar langsung.
   modalEmbedded = false;
+  const v = document.getElementById("modalVideo");
+  v.controls = false; // kontrol bawaan disembunyikan sampai video benar jalan (hindari spinner ganda)
   v.hidden = false;
   const fr0 = document.getElementById("modalFrame");
   fr0.hidden = true; fr0.removeAttribute("src");
-  document.getElementById("modalEmbed").hidden = true;
+  setModalStatus("loading", "Menghubungkan ke kamera…");
   try { modalHls && modalHls.destroy(); } catch {}
   if (modalTimer) clearTimeout(modalTimer);
   modalTimer = setTimeout(() => modalFail("Kamera tidak merespons dalam 45 detik — kemungkinan offline."), 45000);
