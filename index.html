@@ -92,6 +92,9 @@
   #panel:not(.open) { display:none; }
   .row button { padding:6px 9px; font-size:12.5px; }
   .meta .loc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .empty { grid-column:1/-1; text-align:center; color:var(--mut); padding:56px 20px; }
+  .empty h3 { color:var(--txt); margin:12px 0 6px; font-size:17px; }
+  .empty p { margin:0 auto 14px; max-width:440px; font-size:13.5px; line-height:1.7; }
   #panelToggle.hasFilter::after { content:""; position:absolute; top:5px; right:5px; width:9px; height:9px; border-radius:50%; background:var(--warn); }
   #pinChip { display:flex; align-items:center; gap:8px; margin-top:8px; padding:8px 12px; border-radius:8px; background:rgba(210,153,34,.15); border:1px solid var(--warn); font-size:13px; }
   #pinChip[hidden] { display:none; }
@@ -621,6 +624,20 @@ function render() {
     document.getElementById("pinChipTxt").textContent = `${ids.length} CCTV dekat ${sel.name} (≤ ${fmtKm(radius)})`;
   } else {
     chip.hidden = true;
+  }
+  if (!hasFilter) {
+    grid.innerHTML = `
+      <div class="empty">
+        <div><i data-lucide="search" style="width:40px;height:40px"></i></div>
+        <h3>Mulai dengan pencarian</h3>
+        <p>Ketik nama lokasi di kolom pencarian, pilih SPBU, atau telusuri lewat peta — daftar kamera akan tampil di sini.</p>
+        <button data-act="gomap" class="primary"><i data-lucide="map"></i> Cari lewat peta</button>
+      </div>`;
+    const go = grid.querySelector("[data-act=gomap]");
+    if (go) go.onclick = () => showTab("map");
+    refreshIcons();
+    syncMapToFilter(); // marker peta selalu ikut filter header
+    return;
   }
   for (const idx of ids) {
     const c = cams[idx];

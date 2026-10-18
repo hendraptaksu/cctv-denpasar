@@ -17,6 +17,8 @@ dalam satu halaman grid + peta (total 255 kamera per snapshot terakhir).
    ```
 
 2. Ketik di kolom pencarian untuk memfilter simpang/lokasi.
+   Tab Grid hanya menampilkan kartu setelah ada filter (tanpa filter tampil
+   panduan pencarian) — ini menjaga halaman tetap ringan.
    Tombol matahari/bulan di header mengganti tema terang/gelap
    (pilihan tersimpan di `localStorage`, default mengikuti sistem).
 3. Klik **Putar** pada kartu untuk memulai stream (HLS).
